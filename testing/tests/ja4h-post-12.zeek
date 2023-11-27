@@ -30,13 +30,13 @@ event zeek_done() {
   ];
 
   local ja4h: JA4PLUS::JA4H::Info = [
-    $client_version="1.1",
-    $hlist=table(
-      [0] = [$original_name="hOsT", $name="HOST", $value="foo.localhost"],
-      [1] = [$original_name="User-Agent", $name="USER-AGENT", $value="Mozilla/5.0"],
-      [2] = [$original_name="REFERER", $name="REFERER", $value="http://www.example.com/"],
-      [3] = [$original_name="ACCEPT-LANGUAGE", $name="ACCEPT-LANGUAGE", $value="fr-C, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5"],
-      [4] = [$original_name="COOKIE", $name="COOKIE", $value="PHPSESSID=298zf09hf012fh2; FOO=BAR;"],
+    $client_version="1.2",
+    $hlist_vec=vector(
+      [$original_name="hOsT", $name="HOST", $value="foo.localhost"],
+      [$original_name="User-Agent", $name="USER-AGENT", $value="Mozilla/5.0"],
+      [$original_name="REFERER", $name="REFERER", $value="http://www.example.com/"],
+      [$original_name="ACCEPT-LANGUAGE", $name="ACCEPT-LANGUAGE", $value="fr-C, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5"],
+      [$original_name="COOKIE", $name="COOKIE", $value="PHPSESSID=298zf09hf012fh2; FOO=BAR;"],
     )
   ];
 

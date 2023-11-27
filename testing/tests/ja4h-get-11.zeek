@@ -31,9 +31,9 @@ event zeek_done() {
 
   local ja4h: JA4PLUS::JA4H::Info = [
     $client_version="1.1",
-    $hlist=table(
-      [0] = [$original_name="hOsT", $name="HOST", $value="foo.localhost"],
-      [1] = [$original_name="User-Agent", $name="USER-AGENT", $value="Mozilla/5.0"],
+    $hlist_vec=vector(
+      [$original_name="hOsT", $name="HOST", $value="foo.localhost"],
+      [$original_name="User-Agent", $name="USER-AGENT", $value="Mozilla/5.0"],
     )
   ];
 

@@ -8,8 +8,14 @@ export {
     o: string &log &default="";
     ro: string &log &default="";
 
+    # Variable names extracted from all cookies.
+    cookie_vars: vector of string &optional;
+
+    # Variable values extracted from all cookies.
+    cookie_vals: vector of string &optional;
+
     client_version: string &optional;
-    hlist: mime_header_list &optional;
+    hlist_vec: vector of mime_header_rec &optional;
     done: bool &default=F;
   };
 
@@ -35,6 +41,35 @@ event http_request(c: connection, method: string, original_URI: string, unescape
   if (!c$ja4plus$ja4h?$client_version) { c$ja4plus$ja4h$client_version = version; }
 }
 
+function extract_values(data: string, kv_splitter: pattern): string_vec
+	{
+	local value_vec: vector of string = vector();
+
+	local parts = split_string(data, kv_splitter);
+	for ( part_index in parts )
+		{
+		local value_val = split_string1(parts[part_index], /=/);
+		if ( 1 in value_val )
+			value_vec += value_val[1];
+		}
+	return value_vec;
+	}
+
+function extract_keys(data: string, kv_splitter: pattern): string_vec
+	{
+	local value_vec: vector of string = vector();
+
+	local parts = split_string(data, kv_splitter);
+	for ( part_index in parts )
+		{
+		local value_val = split_string1(parts[part_index], /=/);
+		if ( 0 in value_val )
+			value_vec += value_val[0];
+		}
+	return value_vec;
+	}
+
+
 function make_a(c: connection): string {
   local method: string = "??";
   if (c$http?$method) {
@@ -47,9 +82,11 @@ function make_a(c: connection): string {
   local referer: string = "n";
   local header_count: count = 0;
   local al_code: string = "0000";
-  for (idx, hmr in c$ja4plus$ja4h$hlist) {
+  for (idx, hmr in c$ja4plus$ja4h$hlist_vec) {
     if (hmr$name == "COOKIE") {
       cookie = "c";
+      c$ja4plus$ja4h$cookie_vars = extract_keys(hmr$value, /;[[:blank:]]*/);
+      c$ja4plus$ja4h$cookie_vals = extract_values(hmr$value, /;[[:blank:]]*/);
     } else if (hmr$name == "REFERER") {
       referer = "r";
     } else {
@@ -86,7 +123,7 @@ function make_a(c: connection): string {
 
 function make_b(c: connection): string {
   local output: string = "";
-  for (idx, hmr in c$ja4plus$ja4h$hlist) {
+  for (idx, hmr in c$ja4plus$ja4h$hlist_vec) {
     if (hmr$name == "COOKIE" || hmr$name == "REFERER") {
       next;
     }
@@ -97,19 +134,18 @@ function make_b(c: connection): string {
   return output[:-1];
 }
   
-
 function make_c(c: connection, orig_ordering: bool &default=F): string {
   local output: string = "";
-  if (c$http?$cookie_vars) {
+  if (c$ja4plus$ja4h?$cookie_vars) {
     if (orig_ordering) {
-      for (val in c$http$cookie_vars) {
-        output += c$http$cookie_vars[val];
+      for (val in c$ja4plus$ja4h$cookie_vars) {
+        output += c$ja4plus$ja4h$cookie_vars[val];
         output += ",";
       }
     } else {
-      local ordering: vector of count = order(c$http$cookie_vars);
+      local ordering: vector of count = order(c$ja4plus$ja4h$cookie_vars, strcmp);
       for (idx, val in ordering) {
-        output += c$http$cookie_vars[val];
+        output += c$ja4plus$ja4h$cookie_vars[val];
         output += ",";
       }
     }
@@ -119,20 +155,20 @@ function make_c(c: connection, orig_ordering: bool &default=F): string {
 
 function make_d(c: connection, orig_ordering: bool &default=F): string {
   local output: string = "";
-  if (c$http?$cookie_vars) {
+  if (c$ja4plus$ja4h?$cookie_vars) {
     if (orig_ordering) {
-      for (val in c$http$cookie_vars) {
-        output += c$http$cookie_vars[val];
+      for (val in c$ja4plus$ja4h$cookie_vars) {
+        output += c$ja4plus$ja4h$cookie_vars[val];
         output += "=";
-        output += c$http$cookie_vals[val];
+        output += c$ja4plus$ja4h$cookie_vals[val];
         output += ",";
       }
     } else {
-      local ordering: vector of count = order(c$http$cookie_vars);
+      local ordering: vector of count = order(c$ja4plus$ja4h$cookie_vars, strcmp);
       for (idx, val in ordering) {
-        output += c$http$cookie_vars[val];
+        output += c$ja4plus$ja4h$cookie_vars[val];
         output += "=";
-        output += c$http$cookie_vals[val];
+        output += c$ja4plus$ja4h$cookie_vals[val];
         output += ",";
       }
     }
@@ -193,7 +229,11 @@ function set_fingerprint(c: connection) {
 
 event http_all_headers(c: connection, is_orig: bool, hlist: mime_header_list) {
   if (!is_orig) { return; }
-  c$ja4plus$ja4h$hlist = hlist;
+  local hlist_vec: vector of mime_header_rec = vector();
+  for (idx, hmr in hlist) {
+    hlist_vec[idx] = hmr;
+  }
+  c$ja4plus$ja4h$hlist_vec = hlist_vec;
   set_fingerprint(c);
   Log::write(JA4PLUS::JA4H::LOG, c$ja4plus$ja4h);
 }
