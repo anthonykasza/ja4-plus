@@ -1,0 +1,7 @@
+[package]
+description = An implementation of the JA4+ standards in a Zeek package.
+tags = fingerprint, fingerprinting, ja4s, ja4h, ja4s, jas4ssh, ja4l, ja4+, CAUTION_LICENSING, tls, ssl, ssh, http, x509
+script_dir = scripts
+version = main
+test_command = cd testing && btest -c btest.cfg
+config_files = scripts/config.zeek
