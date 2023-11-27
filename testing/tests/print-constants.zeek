@@ -3,6 +3,6 @@
 
 event zeek_done()
 	{
-	print FINGERPRINT::delimiter;
-	print FINGERPRINT::hash_trunc_len;
+	print JA4PLUS::delimiter;
+	print JA4PLUS::hash_trunc_len;
 	}

@@ -1,7 +1,7 @@
-module FINGERPRINT;
+module JA4PLUS;
 
 export { type Info: record {}; }
-redef record connection += { fp: FINGERPRINT::Info &optional; };
+redef record connection += { ja4plus: JA4PLUS::Info &optional; };
 
 @load ./config
 @load ./utils
@@ -19,6 +19,7 @@ redef record connection += { fp: FINGERPRINT::Info &optional; };
 @endif
 
 @if (JA4X_enabled)
+  redef record fa_file += { ja4plus: JA4PLUS::Info &optional; };
   @load ./ja4x
 @endif
 

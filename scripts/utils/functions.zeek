@@ -1,13 +1,24 @@
 
-module FINGERPRINT;
+module JA4PLUS;
 
 export {
-  global trunc_sha256: function(input: string, hash_trunc_len: count &default=FINGERPRINT::hash_trunc_len): string;
+  global trunc_sha256: function(input: string, hash_trunc_len: count &default=JA4PLUS::hash_trunc_len): string;
+  global zero_string: function(): string;
+}
+
+function zero_string(): string {
+  local empty: string = "";
+  local cnt: count = JA4PLUS::hash_trunc_len;
+  while ( cnt > 0 ) {
+    empty += "0";
+    cnt -= 1;
+  }
+  return empty;
 }
 
 # truncated sha256 or all zeros for empty string
 function trunc_sha256(input: string, hash_trunc_len: count
-    &default=FINGERPRINT::hash_trunc_len): string
+    &default=JA4PLUS::hash_trunc_len): string
         {
         if ( |input| == 0 )
                 {

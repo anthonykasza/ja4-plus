@@ -1,4 +1,4 @@
-module FINGERPRINT::JA4H;
+module JA4PLUS::JA4H;
 
 export {
   type Info: record {
@@ -17,22 +17,22 @@ export {
 
   # Logging boilerplate
   redef enum Log::ID += { LOG };
-  global log_fingerprint_ja4h: event(rec: Info);
+  global log_ja4h: event(rec: Info);
   global log_policy: Log::PolicyHook;
 }
 
-redef record FINGERPRINT::Info += {
-  ja4h: FINGERPRINT::JA4H::Info &default=[];
+redef record JA4PLUS::Info += {
+  ja4h: JA4PLUS::JA4H::Info &default=[];
 };
 
 event zeek_init() &priority=5 {
-  Log::create_stream(FINGERPRINT::JA4H::LOG,
-    [$columns=FINGERPRINT::JA4H::Info, $ev=log_fingerprint_ja4h, $path="fingerprint_ja4h", $policy=log_policy]
+  Log::create_stream(JA4PLUS::JA4H::LOG,
+    [$columns=JA4PLUS::JA4H::Info, $ev=log_ja4h, $path="ja4h", $policy=log_policy]
   );
 }
 
 event http_request(c: connection, method: string, original_URI: string, unescaped_URI: string, version: string) {
-  if (!c$fp$ja4h?$client_version) { c$fp$ja4h$client_version = version; }
+  if (!c$ja4plus$ja4h?$client_version) { c$ja4plus$ja4h$client_version = version; }
 }
 
 function make_a(c: connection): string {
@@ -41,16 +41,13 @@ function make_a(c: connection): string {
     method = to_lower(c$http$method[:2]);
   }
 
-  local version: string = "??";
-  if (c$fp$ja4h?$client_version && c$fp$ja4h$client_version in FINGERPRINT::HTTP_VERSION_MAPPER) {
-    version = FINGERPRINT::HTTP_VERSION_MAPPER[c$fp$ja4h$client_version];
-  }
+  local version = JA4PLUS::HTTP_VERSION_MAPPER[c$ja4plus$ja4h$client_version];
 
   local cookie: string = "n";
   local referer: string = "n";
   local header_count: count = 0;
   local al_code: string = "0000";
-  for (idx, hmr in c$fp$ja4h$hlist) {
+  for (idx, hmr in c$ja4plus$ja4h$hlist) {
     if (hmr$name == "COOKIE") {
       cookie = "c";
     } else if (hmr$name == "REFERER") {
@@ -88,86 +85,115 @@ function make_a(c: connection): string {
 }
 
 function make_b(c: connection): string {
-  local s: string = "";
-  for (idx, hmr in c$fp$ja4h$hlist) {
+  local output: string = "";
+  for (idx, hmr in c$ja4plus$ja4h$hlist) {
     if (hmr$name == "COOKIE" || hmr$name == "REFERER") {
       next;
     }
     # case sensitive
-    s += hmr$original_name;
-    s += ",";
+    output += hmr$original_name;
+    output += ",";
   }
-  local bbb: string = s[:-1];
-  if (|bbb| == 0) { return "000000000000"; }
-  local sha256_object = sha256_hash_init();
-  sha256_hash_update(sha256_object, bbb);
-  return sha256_hash_finish(sha256_object)[:12];
+  return output[:-1];
 }
   
 
-function make_c(c: connection): string {
+function make_c(c: connection, orig_ordering: bool &default=F): string {
   local output: string = "";
   if (c$http?$cookie_vars) {
-    local ordering: vector of count = order(c$http$cookie_vars);
-    for (idx, val in ordering) {
-      output += c$http$cookie_vars[val];
-      output += ",";
+    if (orig_ordering) {
+      for (val in c$http$cookie_vars) {
+        output += c$http$cookie_vars[val];
+        output += ",";
+      }
+    } else {
+      local ordering: vector of count = order(c$http$cookie_vars);
+      for (idx, val in ordering) {
+        output += c$http$cookie_vars[val];
+        output += ",";
+      }
     }
   }
-  local ccc: string = output[:-1];
-  if (|ccc| == 0) { return "000000000000"; }
-  local sha256_object = sha256_hash_init();
-  sha256_hash_update(sha256_object, ccc);
-  return sha256_hash_finish(sha256_object)[:12];
+  return output[:-1];
 }
 
-function make_d(c: connection): string {
+function make_d(c: connection, orig_ordering: bool &default=F): string {
   local output: string = "";
   if (c$http?$cookie_vars) {
-    local ordering: vector of count = order(c$http$cookie_vars);
-    for (idx, val in ordering) {
-      output += c$http$cookie_vars[val];
-      output += "=";
-      output += c$http$cookie_vals[val];
-      output += ",";
+    if (orig_ordering) {
+      for (val in c$http$cookie_vars) {
+        output += c$http$cookie_vars[val];
+        output += "=";
+        output += c$http$cookie_vals[val];
+        output += ",";
+      }
+    } else {
+      local ordering: vector of count = order(c$http$cookie_vars);
+      for (idx, val in ordering) {
+        output += c$http$cookie_vars[val];
+        output += "=";
+        output += c$http$cookie_vals[val];
+        output += ",";
+      }
     }
   }
-  local ddd: string = output[:-1];
-  if (|ddd| == 0) { return "000000000000"; }
-  local sha256_object = sha256_hash_init();
-  sha256_hash_update(sha256_object, ddd);
-  return sha256_hash_finish(sha256_object)[:12];
+  return output[:-1];
 }
 
 function set_fingerprint(c: connection) {
-  c$fp$ja4h$uid = c$uid;
+  c$ja4plus$ja4h$uid = c$uid;
 
-  # because the variable name "a" has already used in this scope, sheesh
-  local ja4s_a: string = make_a(c);
-  local ja4s_b: string = make_b(c);
-  local ja4s_c: string = make_c(c);
-  local ja4s_d: string = make_d(c);
+  local aaa: string = make_a(c);
+  local bbb: string = make_b(c);
+  local ccc: string = make_c(c);
+  local ddd: string = make_d(c);
 
-  c$fp$ja4h$ja4h += ja4s_a;
-  c$fp$ja4h$ja4h += FINGERPRINT::delimiter;
-  c$fp$ja4h$ja4h += ja4s_b;
-  c$fp$ja4h$ja4h += FINGERPRINT::delimiter;
-  c$fp$ja4h$ja4h += ja4s_c;
-  c$fp$ja4h$ja4h += FINGERPRINT::delimiter;
-  c$fp$ja4h$ja4h += ja4s_d;
+  # ja4h
+  c$ja4plus$ja4h$ja4h += aaa;
+  c$ja4plus$ja4h$ja4h += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$ja4h += JA4PLUS::trunc_sha256(bbb);
+  c$ja4plus$ja4h$ja4h += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$ja4h += JA4PLUS::trunc_sha256(ccc);
+  c$ja4plus$ja4h$ja4h += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$ja4h += JA4PLUS::trunc_sha256(ddd);
 
-  # TODO - ja4h_o
+  # ja4h_r
+  c$ja4plus$ja4h$r += aaa;
+  c$ja4plus$ja4h$r += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$r += |bbb| == 0 ? JA4PLUS::zero_string() : bbb;
+  c$ja4plus$ja4h$r += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$r += |ccc| == 0 ? JA4PLUS::zero_string() : ccc;
+  c$ja4plus$ja4h$r += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$r += |ddd| == 0 ? JA4PLUS::zero_string() : ddd;
 
-  # TODO - ja4h_r
+  # original ordering = T
+  ccc = make_c(c, T);
+  ddd = make_d(c, T);
 
-  # TODO - ja4h_ro
+  # ja4h_o
+  c$ja4plus$ja4h$o += aaa;
+  c$ja4plus$ja4h$o += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$o += JA4PLUS::trunc_sha256(bbb);
+  c$ja4plus$ja4h$o += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$o += JA4PLUS::trunc_sha256(ccc);
+  c$ja4plus$ja4h$o += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$o += JA4PLUS::trunc_sha256(ddd);
 
-  c$fp$ja4h$done = T;
+  # ja4h_ro
+  c$ja4plus$ja4h$ro += aaa;
+  c$ja4plus$ja4h$ro += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$ro += |bbb| == 0 ? JA4PLUS::zero_string() : bbb;
+  c$ja4plus$ja4h$ro += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$ro += |ccc| == 0 ? JA4PLUS::zero_string() : ccc;
+  c$ja4plus$ja4h$ro += JA4PLUS::delimiter;
+  c$ja4plus$ja4h$ro += |ddd| == 0 ? JA4PLUS::zero_string() : ddd;
+
+  c$ja4plus$ja4h$done = T;
 }
 
 event http_all_headers(c: connection, is_orig: bool, hlist: mime_header_list) {
   if (!is_orig) { return; }
-  c$fp$ja4h$hlist = hlist;
+  c$ja4plus$ja4h$hlist = hlist;
   set_fingerprint(c);
-  Log::write(FINGERPRINT::JA4H::LOG, c$fp$ja4h);
+  Log::write(JA4PLUS::JA4H::LOG, c$ja4plus$ja4h);
 }

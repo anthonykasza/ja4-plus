@@ -10,7 +10,7 @@
 #
 
 # TODO - handle quic handshakes
-module FINGERPRINT::JA4L;
+module JA4PLUS::JA4L;
 
 export {
   type Info: record {
@@ -57,32 +57,32 @@ export {
 
   # Logging boilerplate
   redef enum Log::ID += { LOG };
-  global log_fingerprint_ja4l: event(rec: Info);
+  global log_ja4l: event(rec: Info);
   global log_policy: Log::PolicyHook;
 }
 
-redef record FINGERPRINT::Info += {
-  ja4l: FINGERPRINT::JA4L::Info &default=[];
+redef record JA4PLUS::Info += {
+  ja4l: JA4PLUS::JA4L::Info &default=[];
 };
 
 event zeek_init() &priority=5 {
-  Log::create_stream(FINGERPRINT::JA4L::LOG,
-    [$columns=FINGERPRINT::JA4L::Info, $ev=log_fingerprint_ja4l, $path="fingerprint_ja4l", $policy=log_policy]
+  Log::create_stream(JA4PLUS::JA4L::LOG,
+    [$columns=JA4PLUS::JA4L::Info, $ev=log_ja4l, $path="ja4l", $policy=log_policy]
   );
 }
 
 # Find the interval between the sensor and responder
 event connection_established(c: connection) {
-  if (!c?$fp) { c$fp = []; }
-  if (!c$fp?$ja4l) { c$fp$ja4l = []; }
-  c$fp$ja4l$resp_from_sensor = (network_time() - c$start_time) / 2.0;
+  if (!c?$ja4plus) { c$ja4plus = []; }
+  if (!c$ja4plus?$ja4l) { c$ja4plus$ja4l = []; }
+  c$ja4plus$ja4l$resp_from_sensor = (network_time() - c$start_time) / 2.0;
 }
 
 # find the interval between the sensor and originator
 event connection_first_ACK(c: connection) {
-  if (!c?$fp) { c$fp = []; }
-  if (!c$fp?$ja4l) { c$fp$ja4l = []; }
-  c$fp$ja4l$orig_from_sensor = (network_time() - c$start_time - c$fp$ja4l$resp_from_sensor) / 2.0;
+  if (!c?$ja4plus) { c$ja4plus = []; }
+  if (!c$ja4plus?$ja4l) { c$ja4plus$ja4l = []; }
+  c$ja4plus$ja4l$orig_from_sensor = (network_time() - c$start_time - c$ja4plus$ja4l$resp_from_sensor) / 2.0;
 }
 
 # Find the largest TTL or HLIM value for each endpoint by
@@ -93,41 +93,41 @@ event connection_first_ACK(c: connection) {
 #  have the analyzer raise an event to scriptland when the TTL value of an endpoint changes during the connection
 #  handle that event from scriptland and use it to calculate a mean TTL value for use here
 event new_packet(c: connection, p: pkt_hdr) {
-  if (!c?$fp) { c$fp = []; }
-  if (!c$fp?$ja4l) { c$fp$ja4l = []; }
+  if (!c?$ja4plus) { c$ja4plus = []; }
+  if (!c$ja4plus?$ja4l) { c$ja4plus$ja4l = []; }
 
   # ipv4
   if (p?$ip) {
     # is_orig = T
     if (p$ip$dst == c$id$resp_h) {
-      if (c$fp$ja4l?$orig_ttl) {
-        c$fp$ja4l$orig_ttl = c$fp$ja4l$orig_ttl > p$ip$ttl ? c$fp$ja4l$orig_ttl : p$ip$ttl;
+      if (c$ja4plus$ja4l?$orig_ttl) {
+        c$ja4plus$ja4l$orig_ttl = c$ja4plus$ja4l$orig_ttl > p$ip$ttl ? c$ja4plus$ja4l$orig_ttl : p$ip$ttl;
       } else {
-        c$fp$ja4l$orig_ttl = p$ip$ttl;
+        c$ja4plus$ja4l$orig_ttl = p$ip$ttl;
       }
     # is_orig = F
     } else {
-      if (c$fp$ja4l?$resp_ttl) {
-        c$fp$ja4l$resp_ttl = c$fp$ja4l$resp_ttl > p$ip$ttl ? c$fp$ja4l$resp_ttl : p$ip$ttl;
+      if (c$ja4plus$ja4l?$resp_ttl) {
+        c$ja4plus$ja4l$resp_ttl = c$ja4plus$ja4l$resp_ttl > p$ip$ttl ? c$ja4plus$ja4l$resp_ttl : p$ip$ttl;
       } else {
-        c$fp$ja4l$resp_ttl = p$ip$ttl;
+        c$ja4plus$ja4l$resp_ttl = p$ip$ttl;
       }
     }
   # ipv6
   } else if (p?$ip6) {
     # is_orig = T
     if (p$ip6$dst == c$id$resp_h) {
-      if (c$fp$ja4l?$orig_ttl) {
-        c$fp$ja4l$orig_ttl = c$fp$ja4l$orig_ttl > p$ip6$hlim ? c$fp$ja4l$orig_ttl : p$ip6$hlim;
+      if (c$ja4plus$ja4l?$orig_ttl) {
+        c$ja4plus$ja4l$orig_ttl = c$ja4plus$ja4l$orig_ttl > p$ip6$hlim ? c$ja4plus$ja4l$orig_ttl : p$ip6$hlim;
       } else {
-        c$fp$ja4l$orig_ttl = p$ip6$hlim;
+        c$ja4plus$ja4l$orig_ttl = p$ip6$hlim;
       }
     # is_orig = F
     } else {
-      if (c$fp$ja4l?$resp_ttl) {
-        c$fp$ja4l$resp_ttl = c$fp$ja4l$resp_ttl > p$ip6$hlim ? c$fp$ja4l$resp_ttl : p$ip6$hlim;
+      if (c$ja4plus$ja4l?$resp_ttl) {
+        c$ja4plus$ja4l$resp_ttl = c$ja4plus$ja4l$resp_ttl > p$ip6$hlim ? c$ja4plus$ja4l$resp_ttl : p$ip6$hlim;
       } else {
-        c$fp$ja4l$resp_ttl = p$ip6$hlim;
+        c$ja4plus$ja4l$resp_ttl = p$ip6$hlim;
       }
     }
   }
@@ -137,36 +137,36 @@ event new_packet(c: connection, p: pkt_hdr) {
 function set_fingerprint(c: connection) {
   local orig_hops: count = 0;
   # if we couldn't find any TTLs we set it to 64 anyways
-  if (!c$fp$ja4l?$orig_ttl || c$fp$ja4l$orig_ttl <= 64) {
+  if (!c$ja4plus$ja4l?$orig_ttl || c$ja4plus$ja4l$orig_ttl <= 64) {
     orig_hops = 64;
-  } else if (c$fp$ja4l$orig_ttl > 64 && c$fp$ja4l$orig_ttl <= 128) {
+  } else if (c$ja4plus$ja4l$orig_ttl > 64 && c$ja4plus$ja4l$orig_ttl <= 128) {
     orig_hops = 128;
   } else {
     orig_hops = 255;
   }
 
   # if we missed part of the handshake and could not time it, set it to 0
-  if (!c$fp$ja4l?$orig_from_sensor) {
-    c$fp$ja4l$orig = fmt("C=%04d_%03d", 0, orig_hops);
+  if (!c$ja4plus$ja4l?$orig_from_sensor) {
+    c$ja4plus$ja4l$orig = fmt("C=%04d_%03d", 0, orig_hops);
   } else {
-    c$fp$ja4l$orig = fmt("C=%04d_%03d", double_to_count(100000 * interval_to_double(c$fp$ja4l$orig_from_sensor)), orig_hops);
+    c$ja4plus$ja4l$orig = fmt("C=%04d_%03d", double_to_count(100000 * interval_to_double(c$ja4plus$ja4l$orig_from_sensor)), orig_hops);
   }
 
   local resp_hops: count = 0;
   # if we couldn't find any TTLs we set it to 64 anyways
-  if (!c$fp$ja4l?$resp_ttl || c$fp$ja4l$resp_ttl <= 64) {
+  if (!c$ja4plus$ja4l?$resp_ttl || c$ja4plus$ja4l$resp_ttl <= 64) {
     resp_hops = 64;
-  } else if (c$fp$ja4l$resp_ttl > 64 && c$fp$ja4l$resp_ttl <= 128) {
+  } else if (c$ja4plus$ja4l$resp_ttl > 64 && c$ja4plus$ja4l$resp_ttl <= 128) {
     resp_hops = 128;
   } else {
     resp_hops = 255;
   }
 
   # if we missed part of the handshake and could not time it, set it to 0
-  if (!c$fp$ja4l?$resp_from_sensor) {
-    c$fp$ja4l$resp = fmt("S=%04d_%03d", 0, resp_hops);
+  if (!c$ja4plus$ja4l?$resp_from_sensor) {
+    c$ja4plus$ja4l$resp = fmt("S=%04d_%03d", 0, resp_hops);
   } else {
-    c$fp$ja4l$resp = fmt("S=%04d_%03d", double_to_count(100000 * interval_to_double(c$fp$ja4l$resp_from_sensor)), resp_hops);
+    c$ja4plus$ja4l$resp = fmt("S=%04d_%03d", double_to_count(100000 * interval_to_double(c$ja4plus$ja4l$resp_from_sensor)), resp_hops);
   }
 }
 
@@ -175,8 +175,8 @@ function set_fingerprint(c: connection) {
 event connection_state_remove(c: connection) {
   # TODO - only supporting TCP for now, add QUIC later
   if (c$conn$proto != tcp) { return; }
-  c$fp$ja4l$uid = c$uid;
+  c$ja4plus$ja4l$uid = c$uid;
   set_fingerprint(c);
-  c$fp$ja4l$done = T;
-  Log::write(FINGERPRINT::JA4L::LOG, c$fp$ja4l);
+  c$ja4plus$ja4l$done = T;
+  Log::write(JA4PLUS::JA4L::LOG, c$ja4plus$ja4l);
 }

@@ -1,5 +1,5 @@
 
-module FINGERPRINT::JA4S;
+module JA4PLUS::JA4S;
 
 export {
   type ServerHello: record {
@@ -21,42 +21,42 @@ export {
   };
 }
 
-redef record FINGERPRINT::Info += {
+redef record JA4PLUS::Info += {
   server_hello: ServerHello &default=[];
 };
 
 # This event is processed at the end of the hello, after all the extension-specific events occur
 event ssl_server_hello(c: connection, version: count, record_version: count, possible_ts: time,
  server_random: string, session_id: string, cipher: count, comp_method: count) {
-  if (!c$fp$server_hello?$version) {
+  if (!c$ja4plus$server_hello?$version) {
     # If we weren't able to set the version from an extension, use the outer envelop's versioning
-    c$fp$server_hello$version = version;
+    c$ja4plus$server_hello$version = version;
   }
-  c$fp$server_hello$cipher_suite = cipher;
-  c$fp$server_hello$compression_method = comp_method;
+  c$ja4plus$server_hello$cipher_suite = cipher;
+  c$ja4plus$server_hello$compression_method = comp_method;
 }
 
 # For each extension build up an array of code in the order they appear
 event ssl_extension(c: connection, is_client: bool, code: count, val: string) {
-  if (!c?$fp) { c$fp = []; }
+  if (!c?$ja4plus) { c$ja4plus = []; }
   if (is_client) { return; }
-  if (!c$fp?$server_hello) { c$fp$server_hello = []; }
-  c$fp$server_hello$extension_codes += code;
+  if (!c$ja4plus?$server_hello) { c$ja4plus$server_hello = []; }
+  c$ja4plus$server_hello$extension_codes += code;
 }
 
 # For each alpn build up an array protocol strings
 event ssl_extension_application_layer_protocol_negotiation(c: connection, is_client: bool, protocols: string_vec) {
-  if (!c?$fp) { c$fp = []; }
+  if (!c?$ja4plus) { c$ja4plus = []; }
   if (is_client) { return; }
-  if (!c$fp$server_hello?$alpns) {
-    c$fp$server_hello$alpns = vector();
+  if (!c$ja4plus$server_hello?$alpns) {
+    c$ja4plus$server_hello$alpns = vector();
   }
-  c$fp$server_hello$alpns += protocols;
+  c$ja4plus$server_hello$alpns += protocols;
 }
 
 # If the supported versions extension is present, find the largest offered version and store it
 event ssl_extension_supported_versions(c: connection, is_client: bool, versions: index_vec) {
-  if(!c?$fp) { c$fp = []; }
+  if(!c?$ja4plus) { c$ja4plus = []; }
   if (is_client) { return; }
   local largest: count = 0;
   for (idx, val in versions) {
@@ -64,5 +64,5 @@ event ssl_extension_supported_versions(c: connection, is_client: bool, versions:
       largest = val;
     }
   }
-  c$fp$server_hello$version = largest;
+  c$ja4plus$server_hello$version = largest;
 }

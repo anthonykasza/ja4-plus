@@ -1,5 +1,5 @@
 
-module FINGERPRINT::JA4SSH;
+module JA4PLUS::JA4SSH;
 
 export {
   # packet count rate
@@ -32,7 +32,7 @@ export {
 
   # Logging boilerplate
   redef enum Log::ID += { LOG };
-  global log_fingerprint_ja4ssh: event(rec: Info);
+  global log_ja4ssh: event(rec: Info);
   global log_policy: Log::PolicyHook;
 
   # disable the default behavior of the SSH analyzer, which is to
@@ -40,13 +40,13 @@ export {
   redef SSH::disable_analyzer_after_detection = T;
 }
 
-redef record FINGERPRINT::Info += {
-  ja4ssh: FINGERPRINT::JA4SSH::Info &default=[];
+redef record JA4PLUS::Info += {
+  ja4ssh: JA4PLUS::JA4SSH::Info &default=[];
 };
 
 event zeek_init() &priority=5 {
-  Log::create_stream(FINGERPRINT::JA4SSH::LOG,
-    [$columns=FINGERPRINT::JA4SSH::Info, $ev=log_fingerprint_ja4ssh, $path="fingerprint_ja4ssh", $policy=log_policy]
+  Log::create_stream(JA4PLUS::JA4SSH::LOG,
+    [$columns=JA4PLUS::JA4SSH::Info, $ev=log_ja4ssh, $path="ja4ssh", $policy=log_policy]
   );
 }
 
@@ -107,63 +107,63 @@ event tcp_packet(c: connection, is_orig: bool, flags: string, seq: count, ack: c
   if (!c?$ssh) { return; }
   if (len > 0 || ack == 0) { return; }
   if (is_orig) {
-    c$fp$ja4ssh$orig_ack_cnt += 1;
+    c$ja4plus$ja4ssh$orig_ack_cnt += 1;
   } else {
-    c$fp$ja4ssh$resp_ack_cnt += 1;
+    c$ja4plus$ja4ssh$resp_ack_cnt += 1;
   }
 }
 
 # set the ja4ssh fingerprint context for the connection
 function set_fingerprint(c: connection) {
-  c$fp$ja4ssh$uid = c$uid;
+  c$ja4plus$ja4ssh$uid = c$uid;
     
   local aaa: string = "";
   aaa += "c";
-  aaa += fmt("%02d", find_mode(c$fp$ja4ssh$orig_pkt_lens));
+  aaa += fmt("%02d", find_mode(c$ja4plus$ja4ssh$orig_pkt_lens));
   aaa += "s";
-  aaa += fmt("%02d", find_mode(c$fp$ja4ssh$resp_pkt_lens));
+  aaa += fmt("%02d", find_mode(c$ja4plus$ja4ssh$resp_pkt_lens));
 
   local bbb: string = "";
   bbb += "c";
-  bbb += fmt("%02d", |c$fp$ja4ssh$orig_pkt_lens|);
+  bbb += fmt("%02d", |c$ja4plus$ja4ssh$orig_pkt_lens|);
   bbb += "s";
-  bbb += fmt("%02d", |c$fp$ja4ssh$resp_pkt_lens|);
+  bbb += fmt("%02d", |c$ja4plus$ja4ssh$resp_pkt_lens|);
 
   local ccc: string = "";
   ccc += "c";
-  ccc += fmt("%02d", c$fp$ja4ssh$orig_ack_cnt);;
+  ccc += fmt("%02d", c$ja4plus$ja4ssh$orig_ack_cnt);;
   ccc += "s";
-  ccc += fmt("%02d", c$fp$ja4ssh$resp_ack_cnt);;
+  ccc += fmt("%02d", c$ja4plus$ja4ssh$resp_ack_cnt);;
 
-  c$fp$ja4ssh$ja4ssh += aaa;
-  c$fp$ja4ssh$ja4ssh += FINGERPRINT::delimiter;
-  c$fp$ja4ssh$ja4ssh += bbb;
-  c$fp$ja4ssh$ja4ssh += FINGERPRINT::delimiter;
-  c$fp$ja4ssh$ja4ssh += ccc;
+  c$ja4plus$ja4ssh$ja4ssh += aaa;
+  c$ja4plus$ja4ssh$ja4ssh += JA4PLUS::delimiter;
+  c$ja4plus$ja4ssh$ja4ssh += bbb;
+  c$ja4plus$ja4ssh$ja4ssh += JA4PLUS::delimiter;
+  c$ja4plus$ja4ssh$ja4ssh += ccc;
 
-  c$fp$ja4ssh$done = T;
+  c$ja4plus$ja4ssh$done = T;
 }
 
 # append encrypted packet lengths to a vector and cut a fingerprint at a configured rate
 event ssh_encrypted_packet(c: connection, orig: bool, len: count) {
   if (orig) {
-    c$fp$ja4ssh$orig_pkt_lens += len;
+    c$ja4plus$ja4ssh$orig_pkt_lens += len;
   } else {
-    c$fp$ja4ssh$resp_pkt_lens += len;
+    c$ja4plus$ja4ssh$resp_pkt_lens += len;
   }
 
-  if ((|c$fp$ja4ssh$orig_pkt_lens| + |c$fp$ja4ssh$resp_pkt_lens|) % FINGERPRINT::JA4SSH::rate == 0) {
+  if ((|c$ja4plus$ja4ssh$orig_pkt_lens| + |c$ja4plus$ja4ssh$resp_pkt_lens|) % JA4PLUS::JA4SSH::rate == 0) {
     # set it ...
     set_fingerprint(c);
-    Log::write(FINGERPRINT::JA4SSH::LOG, c$fp$ja4ssh);
+    Log::write(JA4PLUS::JA4SSH::LOG, c$ja4plus$ja4ssh);
     # ... and forget it!
-    c$fp$ja4ssh = [];
+    c$ja4plus$ja4ssh = [];
   }
 }
 
-# log fingerprints for connections with less than FINGERPRINT::JA4SSH::rate packets
+# log fingerprints for connections with less than JA4PLUS::JA4SSH::rate packets
 event connection_state_remove(c: connection) {
   if (!c?$ssh) { return; }
   set_fingerprint(c);
-  Log::write(FINGERPRINT::JA4SSH::LOG, c$fp$ja4ssh);
+  Log::write(JA4PLUS::JA4SSH::LOG, c$ja4plus$ja4ssh);
 }

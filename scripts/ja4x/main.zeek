@@ -1,7 +1,7 @@
 # But I thought x509 certs already had fingerprints...?
 
 
-module FINGERPRINT::JA4X;
+module JA4PLUS::JA4X;
 
 export {
   type Info: record {
@@ -53,20 +53,17 @@ export {
 
   # Logging boilerplate
   redef enum Log::ID += { LOG };
-  global log_fingerprint_ja4x: event(rec: Info);
+  global log_ja4x: event(rec: Info);
   global log_policy: Log::PolicyHook;
 }
 
-# This is a bit inconsistent. Since we are fingerprinting files instead of conenctions, like the other ja4-plus methods,
-#  we insert the Info type into the fa_file context instead of in the 
-#  $fp record stashed in the connection type. 
-redef record fa_file += {
-  ja4x: FINGERPRINT::JA4X::Info &default=[];
+redef record JA4PLUS::Info += {
+  ja4x: JA4PLUS::JA4X::Info &default=[];
 };
 
 event zeek_init() &priority=5 {
-  Log::create_stream(FINGERPRINT::JA4X::LOG,
-    [$columns=FINGERPRINT::JA4X::Info, $ev=log_fingerprint_ja4x, $path="fingerprint_ja4x", $policy=log_policy]
+  Log::create_stream(JA4PLUS::JA4X::LOG,
+    [$columns=JA4PLUS::JA4X::Info, $ev=log_ja4x, $path="ja4x", $policy=log_policy]
   );
 }
 
@@ -105,7 +102,7 @@ function extract_values(data: string, kv_splitter: pattern): string_vec
         }
 
 function set_fingerprint(f: fa_file) {
-  f$ja4x$fuid = f$id;
+  f$ja4plus$ja4x$fuid = f$id;
 
   # Issuer RDNs
   local issuer_rdns_cntvec: vector of count = vector();
@@ -151,25 +148,25 @@ function set_fingerprint(f: fa_file) {
   local ccc: string = vector_of_count_to_str(extension_oids);
 
   # ja4x_r
-  f$ja4x$r = aaa;
-  f$ja4x$r += FINGERPRINT::delimiter;
-  f$ja4x$r += bbb;
-  f$ja4x$r += FINGERPRINT::delimiter;
-  f$ja4x$r += ccc;
+  f$ja4plus$ja4x$r = aaa;
+  f$ja4plus$ja4x$r += JA4PLUS::delimiter;
+  f$ja4plus$ja4x$r += bbb;
+  f$ja4plus$ja4x$r += JA4PLUS::delimiter;
+  f$ja4plus$ja4x$r += ccc;
   
   # ja4x
-  f$ja4x$ja4x += FINGERPRINT::trunc_sha256(aaa);
-  f$ja4x$ja4x += FINGERPRINT::delimiter;
-  f$ja4x$ja4x += FINGERPRINT::trunc_sha256(bbb);
-  f$ja4x$ja4x += FINGERPRINT::delimiter;
-  f$ja4x$ja4x += FINGERPRINT::trunc_sha256(ccc);
+  f$ja4plus$ja4x$ja4x += JA4PLUS::trunc_sha256(aaa);
+  f$ja4plus$ja4x$ja4x += JA4PLUS::delimiter;
+  f$ja4plus$ja4x$ja4x += JA4PLUS::trunc_sha256(bbb);
+  f$ja4plus$ja4x$ja4x += JA4PLUS::delimiter;
+  f$ja4plus$ja4x$ja4x += JA4PLUS::trunc_sha256(ccc);
 
   # This context is done and ready for logging
-  f$ja4x$done = T;
+  f$ja4plus$ja4x$done = T;
 }
 
 event file_state_remove(f: fa_file) {
   if (!f?$info || !f$info?$x509 || !f$info$x509?$certificate) { return; }
   set_fingerprint(f);
-  Log::write(FINGERPRINT::JA4X::LOG, f$ja4x);
+  Log::write(JA4PLUS::JA4X::LOG, f$ja4plus$ja4x);
 }

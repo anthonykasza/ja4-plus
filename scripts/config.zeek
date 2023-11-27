@@ -1,4 +1,4 @@
-module FINGERPRINT;
+module JA4PLUS;
 
 export {
   # delimiter used to indicate different pieces of a fingerprint value

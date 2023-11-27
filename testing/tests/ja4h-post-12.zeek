@@ -1,5 +1,5 @@
 # @TEST-EXEC: zeek $PACKAGE %INPUT >output
-# @TEST-EXEC: cat fingerprint_ja4h.log | zeek-cut ja4h r o ro > ja4h.filtered
+# @TEST-EXEC: cat ja4h.log | zeek-cut ja4h r o ro > ja4h.filtered
 # @TEST-EXEC: btest-diff ja4h.filtered
 # @TEST-EXEC: btest-diff output
 
@@ -29,7 +29,7 @@ event zeek_done() {
     $tags=set(HTTP::EMPTY)
   ];
 
-  local ja4h: FINGERPRINT::JA4H::Info = [
+  local ja4h: JA4PLUS::JA4H::Info = [
     $client_version="1.1",
     $hlist=table(
       [0] = [$original_name="hOsT", $name="HOST", $value="foo.localhost"],
@@ -41,8 +41,8 @@ event zeek_done() {
   ];
 
   dummy$http = h;
-  dummy$fp = [];
-  dummy$fp$ja4h = ja4h;
-  FINGERPRINT::JA4H::set_fingerprint(dummy);
-  Log::write(FINGERPRINT::JA4H::LOG, dummy$fp$ja4h);
+  dummy$ja4plus = [];
+  dummy$ja4plus$ja4h = ja4h;
+  JA4PLUS::JA4H::set_fingerprint(dummy);
+  Log::write(JA4PLUS::JA4H::LOG, dummy$ja4plus$ja4h);
 }

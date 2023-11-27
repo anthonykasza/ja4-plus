@@ -1,8 +1,8 @@
 
-module FINGERPRINT::JA4S;
+module JA4PLUS::JA4S;
 
 export {
-  # The server fingerprint context and logging format
+  # The TLS ServerHello fingerprint context and logging format
   type Info: record {
 
     # The connection uid which this fingerprint represents
@@ -22,18 +22,18 @@ export {
 
   # Logging boilerplate
   redef enum Log::ID += { LOG };
-  global log_fingerprint_ja4s: event(rec: Info);
+  global log_ja4s: event(rec: Info);
   global log_policy: Log::PolicyHook;
 }
 
-redef record FINGERPRINT::Info += {
-  ja4s: FINGERPRINT::JA4S::Info &default=[];
+redef record JA4PLUS::Info += {
+  ja4s: JA4PLUS::JA4S::Info &default=[];
 };
 
 event zeek_init() &priority=5 {
   # ServerHello fingerprints are logged to a new file instead of appended to ssl.log
-  Log::create_stream(FINGERPRINT::JA4S::LOG,
-    [$columns=FINGERPRINT::JA4S::Info, $ev=log_fingerprint_ja4s, $path="fingerprint_ja4s", $policy=log_policy]
+  Log::create_stream(JA4PLUS::JA4S::LOG,
+    [$columns=JA4PLUS::JA4S::Info, $ev=log_ja4s, $path="ja4s", $policy=log_policy]
   );
 }
 
@@ -71,20 +71,20 @@ function make_a(c: connection): string {
                 }
 
   local ec_count = "00";
-  if (|c$fp$server_hello$extension_codes| > 99) {
+  if (|c$ja4plus$server_hello$extension_codes| > 99) {
     ec_count = fmt("%02d", 99);
   } else {
-    ec_count = fmt("%02d", |c$fp$server_hello$extension_codes|);
+    ec_count = fmt("%02d", |c$ja4plus$server_hello$extension_codes|);
   }
 
   local alpn: string = "00";
-  if (c$fp$server_hello?$alpns && |c$fp$server_hello$alpns| > 0) {
+  if (c$ja4plus$server_hello?$alpns && |c$ja4plus$server_hello$alpns| > 0) {
     # TODO - There should be only 1. what happens if there are more than 1?
-    alpn = c$fp$server_hello$alpns[0];
+    alpn = c$ja4plus$server_hello$alpns[0];
   }
 
 
-  local version = FINGERPRINT::TLS_VERSION_MAPPER[c$fp$server_hello$version];
+  local version = JA4PLUS::TLS_VERSION_MAPPER[c$ja4plus$server_hello$version];
 
   local a: string = "";
   a += proto;
@@ -97,29 +97,29 @@ function make_a(c: connection): string {
 
 function set_fingerprint(c: connection) {
   local a: string = make_a(c);
-  local b: string = to_lower(fmt("%02x", c$fp$server_hello$cipher_suite));
+  local b: string = to_lower(fmt("%02x", c$ja4plus$server_hello$cipher_suite));
 
-  c$fp$ja4s$uid = c$uid;
+  c$ja4plus$ja4s$uid = c$uid;
 
   # ja4s
-  c$fp$ja4s$ja4s += a;
-  c$fp$ja4s$ja4s += FINGERPRINT::delimiter;
-  c$fp$ja4s$ja4s += b;
-  c$fp$ja4s$ja4s += FINGERPRINT::delimiter;
-  c$fp$ja4s$ja4s += FINGERPRINT::trunc_sha256(vector_of_count_to_str(c$fp$server_hello$extension_codes));
+  c$ja4plus$ja4s$ja4s += a;
+  c$ja4plus$ja4s$ja4s += JA4PLUS::delimiter;
+  c$ja4plus$ja4s$ja4s += b;
+  c$ja4plus$ja4s$ja4s += JA4PLUS::delimiter;
+  c$ja4plus$ja4s$ja4s += JA4PLUS::trunc_sha256(vector_of_count_to_str(c$ja4plus$server_hello$extension_codes));
 
   # ja4s_r
-  c$fp$ja4s$r += a;
-  c$fp$ja4s$r += FINGERPRINT::delimiter;
-  c$fp$ja4s$r += b;
-  c$fp$ja4s$r += FINGERPRINT::delimiter;
-  c$fp$ja4s$r += vector_of_count_to_str(c$fp$server_hello$extension_codes);
+  c$ja4plus$ja4s$r += a;
+  c$ja4plus$ja4s$r += JA4PLUS::delimiter;
+  c$ja4plus$ja4s$r += b;
+  c$ja4plus$ja4s$r += JA4PLUS::delimiter;
+  c$ja4plus$ja4s$r += vector_of_count_to_str(c$ja4plus$server_hello$extension_codes);
 
-  c$fp$ja4s$done = T;
+  c$ja4plus$ja4s$done = T;
 }
 
 event connection_state_remove(c: connection) {
-  if (!c?$fp || !c$fp?$server_hello || !c$fp$server_hello?$version) { return; }
+  if (!c?$ja4plus || !c$ja4plus?$server_hello || !c$ja4plus$server_hello?$version) { return; }
   set_fingerprint(c);
-  Log::write(FINGERPRINT::JA4S::LOG, c$fp$ja4s);
+  Log::write(JA4PLUS::JA4S::LOG, c$ja4plus$ja4s);
 }

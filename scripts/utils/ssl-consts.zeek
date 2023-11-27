@@ -1,4 +1,4 @@
-module JA4;
+module JA4PLUS;
 
 export {
 	const TLS_VERSION_MAPPER: table[count] of string = {
