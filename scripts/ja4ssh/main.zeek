@@ -2,9 +2,6 @@
 module JA4PLUS::JA4SSH;
 
 export {
-  # packet count rate
-  option rate: count = 200;
-
   type Info: record {
     # uid of the connection this fingerprint represents
     uid: string &log &optional;
@@ -95,11 +92,14 @@ function find_mode(v: vector of count): count {
 }
 
 
-# TODO - packet events are very expensive, consider removing this
-#  or somehow making it performant
-#  It'd be nice to see this information in an endpoint record: https://docs.zeek.org/en/master/scripts/base/init-bare.zeek.html#type-endpoint
-#   it may be possible to add this functionality to the ConnSize analyzer
-#   the ConnSize analyzer may also be a good place to add TTL/HOP_LIMIT observations done in ja4l
+# TODO - consider a TCP_Analyzer plugin instead because...
+#  "This is a very low-level and expensive event that should
+#   be avoided when at all possible. It’s usually infeasible
+#   to handle when processing even medium volumes of traffic
+#   in real-time. It’s slightly better than new_packet because
+#   it affects only TCP, but not much. That said, if you work
+#   from a trace and want to do some packet-level analysis, it
+#   may come in handy."
 event tcp_packet(c: connection, is_orig: bool, flags: string, seq: count, ack: count, len: count, payload: string) {
   # TODO - we only start counting bare-ass ACKs after the analyzer has confirmed this is an SSH connection
   #  the standard needs to clarify if we are counting bare ACKs from the inception of the connection or from a certain state forward

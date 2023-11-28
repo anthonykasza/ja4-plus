@@ -10,6 +10,9 @@ export {
   option JA4S_enabled:   bool = F;
   option JA4H_enabled:   bool = F;
   option JA4L_enabled:   bool = T;
-  option JA4SSH_enabled: bool = F;
   option JA4X_enabled:   bool = F;
+  option JA4SSH_enabled: bool = F;
+
+  # pkt count rate for SSH pkt level analysis
+  option JA4SSH::rate: count = 200;
 }

@@ -59,7 +59,8 @@ redef record JA4PLUS::Info += {
   ja4l: JA4PLUS::JA4L::Info &default=[];
 };
 
-# double the size to support QUIC initial message lengths of >1200 bytes
+# double the size to support TTLs of UDP connections with large initial pkts
+#  like QUIC which has an initial message lengths of >1200 bytes
 redef dpd_buffer_size = 2048;
 
 
@@ -94,7 +95,7 @@ event signature_match(state: signature_state, msg: string, data: string) {
       if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
       state$conn$ja4plus$ja4l$orig_ttl = 128;
       break;
-    case "ipv4-orig-ttl-256", "ipv6-orig-ttl-268":
+    case "ipv4-orig-ttl-256", "ipv6-orig-ttl-256":
       if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
       state$conn$ja4plus$ja4l$orig_ttl = 256;
       break;
@@ -114,12 +115,13 @@ event signature_match(state: signature_state, msg: string, data: string) {
 }
 
 # Set the *_from_sensor values based on the QUIC handshake
+#  https://en.wikipedia.org/wiki/QUIC#/media/File:Tcp-vs-quic-handshake.svg
 function set_quic_handshake(c: connection) {
   if (!c?$quic) { return; }
   local idx: count;
 
   # from the first client time to the first server time
-  idx = 0;
+  idx = 0; # traverse the history forwards
   local of_idx: int = -1;
   local rf_idx: int = -1;
   while (idx < |c$quic$history_state|) {
@@ -135,11 +137,11 @@ function set_quic_handshake(c: connection) {
     idx += 1;
   }
   if (of_idx > -1 && rf_idx > -1) {
-    c$ja4plus$ja4l$resp_from_sensor = (c$ja4plus$ja4l$history_state_ivals[rf_idx] - c$ja4plus$ja4l$history_state_ivals[of_idx] / 2.0);
+    c$ja4plus$ja4l$resp_from_sensor = (c$ja4plus$ja4l$history_state_ivals[rf_idx] - c$ja4plus$ja4l$history_state_ivals[of_idx]) / 2.0;
   }
 
   # from the last server time to the last client time
-  idx = |c$quic$history_state| - 1;
+  idx = |c$quic$history_state| - 1; # traverse the history backwards
   local ol_idx: int = -1;
   local rl_idx: int = -1;
   while (idx >= 0) {
@@ -155,7 +157,7 @@ function set_quic_handshake(c: connection) {
     idx -= 1;
   }
   if (ol_idx > -1 && rl_idx > -1) {
-    c$ja4plus$ja4l$orig_from_sensor = (c$ja4plus$ja4l$history_state_ivals[ol_idx] - c$ja4plus$ja4l$history_state_ivals[rl_idx] / 2.0);
+    c$ja4plus$ja4l$orig_from_sensor = (c$ja4plus$ja4l$history_state_ivals[ol_idx] - c$ja4plus$ja4l$history_state_ivals[rl_idx]) / 2.0;
   }
 }
 
@@ -175,7 +177,12 @@ function set_fingerprint(c: connection) {
     c$ja4plus$ja4l$resp_from_sensor = 0sec;
   }
 
-  # if we could not find a resp ttl
+  # if we could not find an orig ttl then the connection may not be over IP
+  if (!c$ja4plus$ja4l?$orig_ttl) {
+    c$ja4plus$ja4l$orig_ttl = 0;
+  }
+
+  # if we could not find a resp ttl then the connection may have been one-sided
   if (!c$ja4plus$ja4l?$resp_ttl) {
     c$ja4plus$ja4l$resp_ttl = 0;
   }
