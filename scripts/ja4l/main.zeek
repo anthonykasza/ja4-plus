@@ -9,7 +9,6 @@
 #   a disk drive, format the data, and send it back to the client.
 #
 
-# TODO - handle quic handshakes
 module JA4PLUS::JA4L;
 
 export {
@@ -48,6 +47,9 @@ export {
 
     # ja4l responder
     resp: string &log &default="";
+
+    # QUIC history intervals if the connection is QUIC, otherwise empty
+    history_state_ivals: vector of interval &default=vector();
 
     # If this structure is ready to be logged
     done: bool &default=F;
@@ -133,10 +135,56 @@ event new_packet(c: connection, p: pkt_hdr) {
   }
 }
 
+function set_quic_handshake(c: connection) {
+  local idx: count;
+
+  # from the first client time to the first server time
+  idx = 0;
+  local of_idx: int = -1;
+  local rf_idx: int = -1;
+  while (idx < |c$quic$history_state|) {
+    # find first orig time
+    if (c$quic$history_state[idx] == to_upper(c$quic$history_state[idx])) {
+      of_idx = idx;
+    }
+    # find first resp time
+    if (c$quic$history_state[idx] == to_lower(c$quic$history_state[idx])) {
+      rf_idx = idx;
+    }
+    if (of_idx > -1 && rf_idx > -1) { break; }
+    idx += 1;
+  }
+  if (of_idx > -1 && rf_idx > -1) {
+    c$ja4plus$ja4l$resp_from_sensor = (c$ja4plus$ja4l$history_state_ivals[rf_idx] - c$ja4plus$ja4l$history_state_ivals[of_idx] / 2.0);
+  }
+
+  # from the last server time to the last client time
+  idx = |c$quic$history_state| - 1;
+  local ol_idx: int = -1;
+  local rl_idx: int = -1;
+  while (idx >= 0) {
+    # find last orig time
+    if (c$quic$history_state[idx] == to_upper(c$quic$history_state[idx])) {
+      ol_idx = idx;
+    }
+    # find last resp time
+    if (c$quic$history_state[idx] == to_lower(c$quic$history_state[idx])) {
+      rl_idx = idx;
+    }
+    if (ol_idx > -1 && rl_idx > -1) { break; }
+    idx -= 1;
+  }
+  if (ol_idx > -1 && rl_idx > -1) {
+    c$ja4plus$ja4l$orig_from_sensor = (c$ja4plus$ja4l$history_state_ivals[ol_idx] - c$ja4plus$ja4l$history_state_ivals[rl_idx] / 2.0);
+  }
+}
 
 function set_fingerprint(c: connection) {
+  if (c?$quic) { set_quic_handshake(c); }
+  
+  c$ja4plus$ja4l$uid = c$uid;
+
   local orig_hops: count = 0;
-  # if we couldn't find any TTLs we set it to 64 anyways
   if (!c$ja4plus$ja4l?$orig_ttl || c$ja4plus$ja4l$orig_ttl <= 64) {
     orig_hops = 64;
   } else if (c$ja4plus$ja4l$orig_ttl > 64 && c$ja4plus$ja4l$orig_ttl <= 128) {
@@ -144,11 +192,11 @@ function set_fingerprint(c: connection) {
   } else {
     orig_hops = 255;
   }
-
   # if we missed part of the handshake and could not time it, set it to 0
   if (!c$ja4plus$ja4l?$orig_from_sensor) {
     c$ja4plus$ja4l$orig = fmt("C=%04d_%03d", 0, orig_hops);
   } else {
+    # TODO figure out if this * 100000 value is really what should be done
     c$ja4plus$ja4l$orig = fmt("C=%04d_%03d", double_to_count(100000 * interval_to_double(c$ja4plus$ja4l$orig_from_sensor)), orig_hops);
   }
 
@@ -166,17 +214,15 @@ function set_fingerprint(c: connection) {
   if (!c$ja4plus$ja4l?$resp_from_sensor) {
     c$ja4plus$ja4l$resp = fmt("S=%04d_%03d", 0, resp_hops);
   } else {
+    # TODO figure out if this * 100000 value is really what should be done
     c$ja4plus$ja4l$resp = fmt("S=%04d_%03d", double_to_count(100000 * interval_to_double(c$ja4plus$ja4l$resp_from_sensor)), resp_hops);
   }
+
+  c$ja4plus$ja4l$done = T;
 }
 
-# Just before the connection expires from the sensor's memory,
-#  fill out the JA4L strings and log the Info record
 event connection_state_remove(c: connection) {
-  # TODO - only supporting TCP for now, add QUIC later
-  if (c$conn$proto != tcp) { return; }
-  c$ja4plus$ja4l$uid = c$uid;
+  if (c$conn$proto != tcp && !c?$quic) { return; }
   set_fingerprint(c);
-  c$ja4plus$ja4l$done = T;
   Log::write(JA4PLUS::JA4L::LOG, c$ja4plus$ja4l);
 }

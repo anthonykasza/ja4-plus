@@ -29,6 +29,9 @@ event zeek_done() {
     $tags=set(HTTP::EMPTY)
   ];
 
+  # This record is constructed with input values from the JA4+ technical specifications
+  #  Note that the example in the docs has multiple inconsistencies in it
+  #  which is why we get a different output value than the docs  
   local ja4h: JA4PLUS::JA4H::Info = [
     $client_version="2",
     $hlist_vec=vector(

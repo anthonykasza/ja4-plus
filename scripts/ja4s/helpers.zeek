@@ -33,6 +33,8 @@ event ssl_server_hello(c: connection, version: count, record_version: count, pos
     c$ja4plus$server_hello$version = version;
   }
   c$ja4plus$server_hello$cipher_suite = cipher;
+
+  # TODO - incorporate the compression method selected by the server into the fingerprint
   c$ja4plus$server_hello$compression_method = comp_method;
 }
 

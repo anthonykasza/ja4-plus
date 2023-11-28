@@ -1,0 +1,22 @@
+what is "done"?
+
+There are some things in the standard that need better clarified like SSL versions
+
+There are poritions of the documentation that are incorrect, like in JA4H
+```
+ge (HTTP Method) 20 (HTTP Version) c (There’s a cookie) r (There’s a referer) 11 (13 header fields minus Cookie and Referer as those are accounted for above) enus (Accept-Language) _ 974ebe531c03 (hash of http header fields) _ b66fa821d02c (hash of sorted cookie fields) _ e97928733c74 (hash of the sorted cookie fields+values)
+
+JA4H=ge20cr13enus_974ebe531c03_b66fa821d02c_e97928733c74
+```
+Also in H, "usprivacy=1—," should be "usprivacy=1---,"
+
+
+There are portions of the standard that may not scale well on a big pipe (things you want to do per packet like ACK analysis and TTL/HOP counting)
+
+There are portions of the standard that will break parsing. Your delimiter choice:
+- po11cr03frc0_d84c5956c5f9_000000000000_000000000000
+- ... Accept-Encoding,Accept-Language_FastAB,_dd_s ...
+
+
+If my implementation is used, I'd like a slice of the pie just as you'd like for designing the fingerprint standards. 
+
