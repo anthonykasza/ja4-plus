@@ -1,7 +1,4 @@
-# TODO - get inspiration from https://github.com/jswaro/tcprs for TTL
-
-
-
+# TODO - get inspiration from https://github.com/jswaro/tcprs for TTL?
 
 module JA4PLUS::JA4L;
 
@@ -37,12 +34,13 @@ export {
     orig_ttl: count &optional &log;
 
     # ja4l originator
-    orig: string &log &default="";
+    orig_ja4l: string &log &default="";
 
     # ja4l responder
-    resp: string &log &default="";
+    resp_ja4l: string &log &default="";
 
     # QUIC history intervals if the connection is QUIC, otherwise empty
+    #  this may be worth adding to QUIC::Info
     history_state_ivals: vector of interval &default=vector();
 
     # If this structure is ready to be logged
@@ -88,58 +86,29 @@ event connection_first_ACK(c: connection) {
 # Signatures only raise events once per endpoint per connection
 event signature_match(state: signature_state, msg: string, data: string) {
   switch msg {
-    # ipv4
-    case "ipv4-ttl-orig-64":
+    case "ipv4-orig-ttl-64", "ipv6-orig-ttl-64":
       if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
       state$conn$ja4plus$ja4l$orig_ttl = 64;
       break;
-    case "ipv4-ttl-orig-128":
+    case "ipv4-orig-ttl-128", "ipv6-orig-ttl-128":
       if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
       state$conn$ja4plus$ja4l$orig_ttl = 128;
       break;
-    case "ipv4-ttl-orig-256":
+    case "ipv4-orig-ttl-256", "ipv6-orig-ttl-268":
       if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
       state$conn$ja4plus$ja4l$orig_ttl = 256;
       break;
-    case "ipv4-ttl-resp-64":
+    case "ipv4-resp-ttl-64", "ipv6-resp-ttl-64":
       if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
       state$conn$ja4plus$ja4l$resp_ttl = 64;
       break;
-    case "ipv4-ttl-resp-128":
+    case "ipv4-resp-ttl-128", "ipv6-resp-ttl-128":
       if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
       state$conn$ja4plus$ja4l$resp_ttl = 128;
       break;
-    case "ipv4-ttl-resp-256":
+    case "ipv4-resp-ttl-256", "ipv6-resp-ttl-256":
       if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
       state$conn$ja4plus$ja4l$resp_ttl = 256;
-      break;
-    # ipv6
-    case "ipv6-ttl-orig-64":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$orig_ttl = 64;
-      break;
-    case "ipv6-ttl-orig-128":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$orig_ttl = 128;
-      break;
-    case "ipv6-ttl-orig-256":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$orig_ttl = 256;
-      break;
-    case "ipv6-ttl-resp-64":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$resp_ttl = 64;
-      break;
-    case "ipv6-ttl-resp-128":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$resp_ttl = 128;
-      break;
-    case "ipv6-ttl-resp-256":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$resp_ttl = 268;
-      break;
-    # ?
-    default:
       break;
   }
 }
@@ -196,19 +165,34 @@ function set_fingerprint(c: connection) {
   
   c$ja4plus$ja4l$uid = c$uid;
 
-  # if we missed part of the handshake and could not time it, set it to 0
+  # if we could not time the orig <-> sensor
   if (!c$ja4plus$ja4l?$orig_from_sensor) {
-    c$ja4plus$ja4l$orig = fmt("C=%04d_%03d", 0, c$ja4plus$ja4l$orig_ttl);
-  } else {
-    c$ja4plus$ja4l$orig = fmt("C=%04d_%03d", double_to_count(100000 * interval_to_double(c$ja4plus$ja4l$orig_from_sensor)), c$ja4plus$ja4l$orig_ttl);
+    c$ja4plus$ja4l$orig_from_sensor = 0sec;
   }
 
-  # if we missed part of the handshake and could not time it, set it to 0
+  # if we could not time the sensor <-> resp
   if (!c$ja4plus$ja4l?$resp_from_sensor) {
-    c$ja4plus$ja4l$resp = fmt("S=%04d_%03d", 0, c$ja4plus$ja4l?$resp_ttl ? c$ja4plus$ja4l$resp_ttl : 0);
-  } else {
-    c$ja4plus$ja4l$resp = fmt("S=%04d_%03d", double_to_count(100000 * interval_to_double(c$ja4plus$ja4l$resp_from_sensor)), c$ja4plus$ja4l?$resp_ttl ? c$ja4plus$ja4l$resp_ttl : 0);
+    c$ja4plus$ja4l$resp_from_sensor = 0sec;
   }
+
+  # if we could not find a resp ttl
+  if (!c$ja4plus$ja4l?$resp_ttl) {
+    c$ja4plus$ja4l$resp_ttl = 0;
+  }
+
+  # TODO - is this the correct format multiplier?
+  local multiplier = 100000;
+
+  c$ja4plus$ja4l$orig_ja4l = fmt(
+    "C=%04d_%03d",
+    double_to_count(multiplier * interval_to_double(c$ja4plus$ja4l$orig_from_sensor)),
+    c$ja4plus$ja4l$orig_ttl
+  );
+  c$ja4plus$ja4l$resp_ja4l = fmt(
+    "S=%04d_%03d",
+    double_to_count(multiplier * interval_to_double(c$ja4plus$ja4l$resp_from_sensor)),
+    c$ja4plus$ja4l$resp_ttl
+  );
 
   c$ja4plus$ja4l$done = T;
 }
