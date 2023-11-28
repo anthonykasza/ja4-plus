@@ -7,9 +7,9 @@ export {
   # truncated sha256 hash length
   option hash_trunc_len: count = 12;
 
-  option JA4S_enabled:   bool = T;
-  option JA4H_enabled:   bool = T;
-  option JA4L_enabled:   bool = F;
+  option JA4S_enabled:   bool = F;
+  option JA4H_enabled:   bool = F;
+  option JA4L_enabled:   bool = T;
   option JA4SSH_enabled: bool = F;
   option JA4X_enabled:   bool = F;
 }

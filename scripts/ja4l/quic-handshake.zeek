@@ -2,6 +2,7 @@ module JA4PLUS::JA4L;
 
 
 function add_to_history_ivals(c: connection) {
+  if (!c?$ja4plus) { c$ja4plus = []; }
   if (|c$ja4plus$ja4l$history_state_ivals| == QUIC::max_history_length) { return; }
   c$ja4plus$ja4l$history_state_ivals += network_time() - c$start_time;
 }
