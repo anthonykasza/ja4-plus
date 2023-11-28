@@ -1,3 +1,8 @@
+# TODO - get inspiration from https://github.com/jswaro/tcprs for TTL
+
+
+
+
 module JA4PLUS::JA4L;
 
 export {
