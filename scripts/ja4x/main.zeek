@@ -1,6 +1,3 @@
-# But I thought x509 certs already had fingerprints...?
-
-
 module JA4PLUS::JA4X;
 
 export {
@@ -67,23 +64,6 @@ event zeek_init() &priority=5 {
   );
 }
 
-# TODO - is 6 hex digits the correct format for oid hex values?
-function vector_of_count_to_str(input: vector of count, format_str: string
-    &default="%06x", dlimit: string &default=","): string
-        {
-        local output: string = "";
-        for ( idx in input )
-                {
-                local val = input[idx];
-                output += fmt(format_str, val);
-                if ( idx < |input| - 1 )
-                        {
-                        output += dlimit;
-                        }
-                }
-        return output;
-        }
-
 # We use this same function is ja4h for cookie values
 function extract_values(data: string, kv_splitter: pattern): string_vec
         {
@@ -116,7 +96,7 @@ function set_fingerprint(f: fa_file) {
       issuer_rdns_cntvec += 0xffffff;
     }
   }
-  local aaa: string = vector_of_count_to_str(issuer_rdns_cntvec);
+  local aaa: string = JA4PLUS::vector_of_count_to_str(issuer_rdns_cntvec, "%06x");
 
   # Subject RDNs
   local subject_rdns_cntvec: vector of count = vector();
@@ -130,7 +110,7 @@ function set_fingerprint(f: fa_file) {
       subject_rdns_cntvec += 0xffffff;
     }
   }
-  local bbb: string = vector_of_count_to_str(subject_rdns_cntvec);
+  local bbb: string = JA4PLUS::vector_of_count_to_str(subject_rdns_cntvec, "%06x");
 
   # TODO - test to see if this order is indeed the order in which they extension appear
   #  if not, we may need to write x509_extension event bodies to built the vector ourselves
@@ -145,7 +125,7 @@ function set_fingerprint(f: fa_file) {
       extension_oids += 0xffffff;
     }
   }
-  local ccc: string = vector_of_count_to_str(extension_oids);
+  local ccc: string = JA4PLUS::vector_of_count_to_str(extension_oids, "%06x");
 
   # ja4x_r
   f$ja4plus$ja4x$r = aaa;

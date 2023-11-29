@@ -118,22 +118,16 @@ function set_fingerprint(c: connection) {
   c$ja4plus$ja4ssh$uid = c$uid;
     
   local aaa: string = "";
-  aaa += "c";
-  aaa += fmt("%02d", find_mode(c$ja4plus$ja4ssh$orig_pkt_lens));
-  aaa += "s";
-  aaa += fmt("%02d", find_mode(c$ja4plus$ja4ssh$resp_pkt_lens));
+  aaa += fmt("c%02d", find_mode(c$ja4plus$ja4ssh$orig_pkt_lens));
+  aaa += fmt("s%02d", find_mode(c$ja4plus$ja4ssh$resp_pkt_lens));
 
   local bbb: string = "";
-  bbb += "c";
-  bbb += fmt("%02d", |c$ja4plus$ja4ssh$orig_pkt_lens|);
-  bbb += "s";
-  bbb += fmt("%02d", |c$ja4plus$ja4ssh$resp_pkt_lens|);
+  bbb += fmt("c%02d", |c$ja4plus$ja4ssh$orig_pkt_lens|);
+  bbb += fmt("s%02d", |c$ja4plus$ja4ssh$resp_pkt_lens|);
 
   local ccc: string = "";
-  ccc += "c";
-  ccc += fmt("%02d", c$ja4plus$ja4ssh$orig_ack_cnt);;
-  ccc += "s";
-  ccc += fmt("%02d", c$ja4plus$ja4ssh$resp_ack_cnt);;
+  ccc += fmt("c%02d", c$ja4plus$ja4ssh$orig_ack_cnt);;
+  ccc += fmt("s%02d", c$ja4plus$ja4ssh$resp_ack_cnt);;
 
   c$ja4plus$ja4ssh$ja4ssh += aaa;
   c$ja4plus$ja4ssh$ja4ssh += JA4PLUS::delimiter;

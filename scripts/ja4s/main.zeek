@@ -37,18 +37,6 @@ event zeek_init() &priority=5 {
   );
 }
 
-# TODO - some of the following functions are duplicates from the ClientHello code, vector_of_count_to_str. 
-#  reduce, reuse, recycle these function
-function vector_of_count_to_str(input: vector of count, format_str: string &default="%04x", dlimit: string &default=","): string {
-  local output: string = "";
-  for (idx, val in input) {
-    output += fmt(format_str, val);
-    if (idx < |input|-1) {
-      output += dlimit;
-    }
-  }
-  return output;
-}
 
 function make_a(c: connection): string {
         local proto: string = "0";
@@ -70,11 +58,13 @@ function make_a(c: connection): string {
                 proto = "u";
                 }
 
-  local ec_count = "00";
+  local version: string = JA4PLUS::TLS_VERSION_MAPPER[c$ja4plus$server_hello$version];
+
+  local ec_count: string = "00";
   if (|c$ja4plus$server_hello$extension_codes| > 99) {
-    ec_count = fmt("%02d", 99);
+    ec_count = fmt("%04d", 99);
   } else {
-    ec_count = fmt("%02d", |c$ja4plus$server_hello$extension_codes|);
+    ec_count = fmt("%04d", |c$ja4plus$server_hello$extension_codes|);
   }
 
   local alpn: string = "00";
@@ -82,9 +72,6 @@ function make_a(c: connection): string {
     # TODO - There should be only 1. what happens if there are more than 1?
     alpn = c$ja4plus$server_hello$alpns[0];
   }
-
-
-  local version = JA4PLUS::TLS_VERSION_MAPPER[c$ja4plus$server_hello$version];
 
   local a: string = "";
   a += proto;
@@ -97,7 +84,7 @@ function make_a(c: connection): string {
 
 function set_fingerprint(c: connection) {
   local a: string = make_a(c);
-  local b: string = to_lower(fmt("%02x", c$ja4plus$server_hello$cipher_suite));
+  local b: string = to_lower(fmt("%04x", c$ja4plus$server_hello$cipher_suite));
 
   c$ja4plus$ja4s$uid = c$uid;
 
@@ -106,14 +93,14 @@ function set_fingerprint(c: connection) {
   c$ja4plus$ja4s$ja4s += JA4PLUS::delimiter;
   c$ja4plus$ja4s$ja4s += b;
   c$ja4plus$ja4s$ja4s += JA4PLUS::delimiter;
-  c$ja4plus$ja4s$ja4s += JA4PLUS::trunc_sha256(vector_of_count_to_str(c$ja4plus$server_hello$extension_codes));
+  c$ja4plus$ja4s$ja4s += JA4PLUS::trunc_sha256(JA4PLUS::vector_of_count_to_str(c$ja4plus$server_hello$extension_codes));
 
   # ja4s_r
   c$ja4plus$ja4s$r += a;
   c$ja4plus$ja4s$r += JA4PLUS::delimiter;
   c$ja4plus$ja4s$r += b;
   c$ja4plus$ja4s$r += JA4PLUS::delimiter;
-  c$ja4plus$ja4s$r += vector_of_count_to_str(c$ja4plus$server_hello$extension_codes);
+  c$ja4plus$ja4s$r += JA4PLUS::vector_of_count_to_str(c$ja4plus$server_hello$extension_codes);
 
   c$ja4plus$ja4s$done = T;
 }

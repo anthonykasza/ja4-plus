@@ -1,5 +1,3 @@
-what is "done"?
-
 There are some things in the standard that need better clarified like SSL versions
 
 There are poritions of the documentation that are incorrect, like in JA4H
@@ -23,3 +21,10 @@ If my implementation is used, I'd like a slice of the pie just as you'd like for
 
 
 
+In JA4L, how do the microseconds get formatted in the fingerprint string?
+And, is there a maximu latency value?
+
+
+
+
+In JA4SSH, when do we begin counting bare ACKs? After encryption begins or at the start of the connection?

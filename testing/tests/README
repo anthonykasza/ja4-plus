@@ -1,0 +1,5 @@
+Right now all the tests include a properly constructed context (Info record)
+and ensure that set_fingerprint operates properly in each script.
+
+Currently, the tests DO NOT ensure contexts are constructed properly from pcaps.
+

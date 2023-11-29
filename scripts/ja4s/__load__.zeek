@@ -1,2 +1,2 @@
-@load ./helpers
+@load ./server-hello
 @load ./main

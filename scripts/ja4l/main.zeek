@@ -1,5 +1,3 @@
-# TODO - get inspiration from https://github.com/jswaro/tcprs for TTL?
-
 module JA4PLUS::JA4L;
 
 export {
@@ -40,7 +38,6 @@ export {
     resp_ja4l: string &log &default="";
 
     # QUIC history intervals if the connection is QUIC, otherwise empty
-    #  this may be worth adding to QUIC::Info
     history_state_ivals: vector of interval &default=vector();
 
     # If this structure is ready to be logged
@@ -60,7 +57,7 @@ redef record JA4PLUS::Info += {
 };
 
 # double the size to support TTLs of UDP connections with large initial pkts
-#  like QUIC which has an initial message lengths of >1200 bytes
+#  like QUIC which has an initial message lengths of >1200 bytes. 
 redef dpd_buffer_size = 2048;
 
 
@@ -187,16 +184,18 @@ function set_fingerprint(c: connection) {
     c$ja4plus$ja4l$resp_ttl = 0;
   }
 
-  # TODO - is this the correct format multiplier?
-  local multiplier = 100000;
+  # TODO - is this the correct format multiplier? 
+  # TODO - what happens when the latency is great than 7 digits, %07d?
+  #        is there a maximum latency value?
+  local multiplier = 1000000;
 
   c$ja4plus$ja4l$orig_ja4l = fmt(
-    "C=%04d_%03d",
+    "C=%07d_%03d",
     double_to_count(multiplier * interval_to_double(c$ja4plus$ja4l$orig_from_sensor)),
     c$ja4plus$ja4l$orig_ttl
   );
   c$ja4plus$ja4l$resp_ja4l = fmt(
-    "S=%04d_%03d",
+    "S=%07d_%03d",
     double_to_count(multiplier * interval_to_double(c$ja4plus$ja4l$resp_from_sensor)),
     c$ja4plus$ja4l$resp_ttl
   );

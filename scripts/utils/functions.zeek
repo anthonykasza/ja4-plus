@@ -4,6 +4,18 @@ module JA4PLUS;
 export {
   global trunc_sha256: function(input: string, hash_trunc_len: count &default=JA4PLUS::hash_trunc_len): string;
   global zero_string: function(): string;
+  global vector_of_count_to_str: function(input: vector of count, format_str: string, dlimit: string): string;
+}
+
+function vector_of_count_to_str(input: vector of count, format_str: string &default="%04x", dlimit: string &default=","): string {
+  local output: string = "";
+  for (idx, val in input) {
+    output += fmt(format_str, val);
+    if (idx < |input|-1) {
+      output += dlimit;
+    }
+  }
+  return output;
 }
 
 function zero_string(): string {
