@@ -15,4 +15,9 @@ export {
 
   # pkt count rate for SSH pkt level analysis
   option JA4PLUS::JA4SSH::rate: count = 200;
+
+  # enable TTL estimates instead of exact observations
+  #  enabling this option makes JA4L potentialy more performant
+  #  but reduces the accuracy of JA4L
+  option JA4PLUS::JA4L::enable_estimates: bool = T;
 }
