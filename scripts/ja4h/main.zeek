@@ -2,10 +2,19 @@ module JA4PLUS::JA4H;
 
 export {
   type Info: record {
+    # The connection uid which this fingerprint represents
     uid: string &optional;
+
+    # the ja4h fingerprint value
     ja4h: string &log &default="";
+
+    # The fingerprint with the raw array output
     r: string &log &default="";
+
+    # The fingerprint with the original offered ordering
     o: string &log &default="";
+
+    # The fingerprint with both the original offered ordering and the raw array output
     ro: string &log &default="";
 
     # Variable names extracted from all cookies.
@@ -14,8 +23,13 @@ export {
     # Variable values extracted from all cookies.
     cookie_vals: vector of string &optional;
 
+    # The version offered by the client
     client_version: string &optional;
+
+    # the header list from the request
     hlist_vec: vector of mime_header_rec &optional;
+
+    # If this context is ready to be logged
     done: bool &default=F;
   };
 
@@ -37,10 +51,14 @@ event zeek_init() &priority=5 {
   );
 }
 
+# Store the version the client offers. c$http$version contains the version
+#  from the resp
 event http_request(c: connection, method: string, original_URI: string, unescaped_URI: string, version: string) {
   if (!c$ja4plus$ja4h?$client_version) { c$ja4plus$ja4h$client_version = version; }
 }
 
+# TODO - move this function into utils/functions, combine with similar 
+#  functions
 function extract_values(data: string, kv_splitter: pattern): string_vec
 	{
 	local value_vec: vector of string = vector();
@@ -55,6 +73,8 @@ function extract_values(data: string, kv_splitter: pattern): string_vec
 	return value_vec;
 	}
 
+# TODO - move this function into utils/functions, combine with the above 
+#  extract_values function, and the function used in JA4X
 function extract_keys(data: string, kv_splitter: pattern): string_vec
 	{
 	local value_vec: vector of string = vector();
@@ -69,7 +89,7 @@ function extract_keys(data: string, kv_splitter: pattern): string_vec
 	return value_vec;
 	}
 
-
+# Construct the A string portion of the fingerprint
 function make_a(c: connection): string {
   local method: string = "??";
   if (c$http?$method) {
@@ -93,6 +113,7 @@ function make_a(c: connection): string {
       header_count += 1;
     }
     if (hmr$name == "ACCEPT-LANGUAGE") {
+      # remove all hyphens from the header's value
       al_code = to_lower(gsub(hmr$value, /-/, ""));
       al_code = split_string1(al_code, /,/)[0];
       if (|al_code| < 4) {
@@ -121,9 +142,11 @@ function make_a(c: connection): string {
   return aaa;
 }
 
+# Make the B portion of the fingerprint
 function make_b(c: connection): string {
   local output: string = "";
   for (idx, hmr in c$ja4plus$ja4h$hlist_vec) {
+    # ignore certain headers
     if (hmr$name == "COOKIE" || hmr$name == "REFERER") {
       next;
     }
@@ -133,7 +156,8 @@ function make_b(c: connection): string {
   }
   return output[:-1];
 }
-  
+
+# make the C portion of the fingerprint
 function make_c(c: connection, orig_ordering: bool &default=F): string {
   local output: string = "";
   if (c$ja4plus$ja4h?$cookie_vars) {
@@ -153,6 +177,7 @@ function make_c(c: connection, orig_ordering: bool &default=F): string {
   return output[:-1];
 }
 
+# make the D portion
 function make_d(c: connection, orig_ordering: bool &default=F): string {
   local output: string = "";
   if (c$ja4plus$ja4h?$cookie_vars) {

@@ -52,7 +52,9 @@ event ssl_extension_supported_versions(c: connection, is_client: bool, versions:
   if (is_client) { return; }
   if(!c?$ja4plus) { c$ja4plus = []; }
   for (idx, val in versions) {
-    if (val > c$ja4plus$server_hello$version) {
+    if (!c$ja4plus$server_hello?$version) {
+      c$ja4plus$server_hello$version = val;
+    } else if (val > c$ja4plus$server_hello$version) {
       c$ja4plus$server_hello$version = val;
     }
   }

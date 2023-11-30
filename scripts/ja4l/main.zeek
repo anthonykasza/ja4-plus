@@ -4,25 +4,8 @@ export {
   type Info: record {
     uid: string &optional &log;
 
-    # Sensor observes the Originator sending a SYN to the Responder
-    #   ___      _      ___
-    #  | O |--->|S|    | R |
-    #  |___|    |_|    |___|
-    #
-    # We do not record this value as it is set in c$start_time
-
-    # Sensor observes the Responder sending a SYN+ACK to the Originator
-    #   ___      _      ___
-    #  | O |    |S|--->| R |
-    #  |___|    |_|<---|___|
-    #
     resp_from_sensor: interval &optional &log;
     
-    # Sensor observes the Originator sending a ACK with optional DATA to the Responder
-    #   ___      _      ___
-    #  | O |<---|S|    | R |
-    #  |___|--->|_|    |___|
-    #
     orig_from_sensor: interval &optional &log;
 
     # TTL or HLIM value take from IP header
@@ -56,59 +39,10 @@ redef record JA4PLUS::Info += {
   ja4l: JA4PLUS::JA4L::Info &default=[];
 };
 
-# double the size to support TTLs of UDP connections with large initial pkts
-#  like QUIC which has an initial message lengths of >1200 bytes. 
-redef dpd_buffer_size = 2048;
-
-
 event zeek_init() &priority=5 {
   Log::create_stream(JA4PLUS::JA4L::LOG,
     [$columns=JA4PLUS::JA4L::Info, $ev=log_ja4l, $path="ja4l", $policy=log_policy]
   );
-}
-
-# Find the interval between the sensor and responder
-event connection_established(c: connection) {
-  if (!c?$ja4plus) { c$ja4plus = []; }
-  if (!c$ja4plus?$ja4l) { c$ja4plus$ja4l = []; }
-  c$ja4plus$ja4l$resp_from_sensor = (network_time() - c$start_time) / 2.0;
-}
-
-# find the interval between the sensor and originator
-event connection_first_ACK(c: connection) {
-  if (!c?$ja4plus) { c$ja4plus = []; }
-  if (!c$ja4plus?$ja4l) { c$ja4plus$ja4l = []; }
-  c$ja4plus$ja4l$orig_from_sensor = (network_time() - c$start_time - c$ja4plus$ja4l$resp_from_sensor) / 2.0;
-}
-
-# Signatures only raise events once per endpoint per connection
-event signature_match(state: signature_state, msg: string, data: string) {
-  switch msg {
-    case "ipv4-orig-ttl-64", "ipv6-orig-ttl-64":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$orig_ttl = 64;
-      break;
-    case "ipv4-orig-ttl-128", "ipv6-orig-ttl-128":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$orig_ttl = 128;
-      break;
-    case "ipv4-orig-ttl-256", "ipv6-orig-ttl-256":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$orig_ttl = 256;
-      break;
-    case "ipv4-resp-ttl-64", "ipv6-resp-ttl-64":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$resp_ttl = 64;
-      break;
-    case "ipv4-resp-ttl-128", "ipv6-resp-ttl-128":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$resp_ttl = 128;
-      break;
-    case "ipv4-resp-ttl-256", "ipv6-resp-ttl-256":
-      if (!state$conn?$ja4plus) { state$conn$ja4plus = []; }
-      state$conn$ja4plus$ja4l$resp_ttl = 256;
-      break;
-  }
 }
 
 # Set the *_from_sensor values based on the QUIC handshake
@@ -160,7 +94,7 @@ function set_quic_handshake(c: connection) {
 
 # Set the fingerprint strings based on the values accumulated in the Info recrod
 function set_fingerprint(c: connection) {
-  set_quic_handshake(c);
+  JA4PLUS::JA4L::set_quic_handshake(c);
   
   c$ja4plus$ja4l$uid = c$uid;
 

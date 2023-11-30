@@ -32,20 +32,14 @@ export {
     ["2.5.4.3"] = 0x550403,
   };
 
-  # TODO - find an authoritative list of all rdn attributes
-  #  If we can map abbreviated string to oid, we can then compute
-  #  the hex value from the oid
+  # TODO - wrap existing openssl library values in a bif?
+  #  https://stackoverflow.com/questions/31629961/where-does-openssl-store-its-oids
+  #  https://github.com/openssl/openssl/blob/master/crypto/objects/obj_dat.h
   const rdn_lookup: table[string] of count = {
-    ["DC"] = 0,     # domainComponent
-    ["CN"] = 0x550403,     # commonName, 2.5.4.3
-    ["OU"] = 0,     # organizationalUnitName
-    ["O"] = 0x55040a,      # organizationName, 2.5.4.10
-    ["STREET"] = 0,
-    ["L"] = 0,      # locality
-    ["ST"] = 0,     # stateOrProvinceName
-    ["C"] = 0x550406,      # countryName, 2.5.4.6
-    ["UID"] = 0,    # 
-    ["SN"] = 0,     # surName
+    ["DC"] = 0,     	# domainComponent
+    ["CN"] = 0x550403,	# commonName, 2.5.4.3
+    ["OU"] = 0,		# organizationalUnitName
+    ["O"] = 0x55040a,	# organizationName, 2.5.4.10
   };
 
   # Logging boilerplate
@@ -64,7 +58,7 @@ event zeek_init() &priority=5 {
   );
 }
 
-# We use this same function is ja4h for cookie values
+# TODO - move this function and its copy used by JA4H into utils/functions
 function extract_values(data: string, kv_splitter: pattern): string_vec
         {
         local value_vec: vector of string = vector();
