@@ -23,8 +23,8 @@ event zeek_done() {
   local ja4l: JA4PLUS::JA4L::Info = [
     $resp_from_sensor=20usec,
     $orig_from_sensor=20usec,
-    $resp_ttl=64,
-    $orig_ttl=64,
+    $resp_ttl=63,
+    $orig_ttl=63,
   ];
 
   dummy$ja4plus = [];
