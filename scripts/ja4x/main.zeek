@@ -58,29 +58,12 @@ event zeek_init() &priority=5 {
   );
 }
 
-# TODO - move this function and its copy used by JA4H into utils/functions
-function extract_values(data: string, kv_splitter: pattern): string_vec
-        {
-        local value_vec: vector of string = vector();
-
-        local parts = split_string(data, kv_splitter);
-        for ( part_index in parts )
-                {
-                local value_val = split_string1(parts[part_index], /=/);
-                # 0 - extract RDN keys
-                # 1 - extract RDN values
-                if ( 0 in value_val )
-                        value_vec += value_val[0];
-                }
-        return value_vec;
-        }
-
 function set_fingerprint(f: fa_file) {
   f$ja4plus$ja4x$fuid = f$id;
 
   # Issuer RDNs
   local issuer_rdns_cntvec: vector of count = vector();
-  local issuer_rdns_strvec = extract_values(f$info$x509$certificate$issuer, /,[[:blank:]]*/);
+  local issuer_rdns_strvec = JA4PLUS::extract_key_val(f$info$x509$certificate$issuer, /,[[:blank:]]*/, F);
   for (idx in issuer_rdns_strvec) {
     local key = issuer_rdns_strvec[idx];
     if (key in rdn_lookup) {
@@ -94,7 +77,7 @@ function set_fingerprint(f: fa_file) {
 
   # Subject RDNs
   local subject_rdns_cntvec: vector of count = vector();
-  local subject_rdns_strvec = extract_values(f$info$x509$certificate$subject, /,[[:blank:]]*/);
+  local subject_rdns_strvec = JA4PLUS::extract_key_val(f$info$x509$certificate$subject, /,[[:blank:]]*/, F);
   for (idx_UNIQNO1973333 in subject_rdns_strvec) {
     local key_UNIQNO85685487 = subject_rdns_strvec[idx_UNIQNO1973333];
     if (key_UNIQNO85685487 in rdn_lookup) {

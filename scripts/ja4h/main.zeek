@@ -57,38 +57,6 @@ event http_request(c: connection, method: string, original_URI: string, unescape
   if (!c$ja4plus$ja4h?$client_version) { c$ja4plus$ja4h$client_version = version; }
 }
 
-# TODO - move this function into utils/functions, combine with similar 
-#  functions
-function extract_values(data: string, kv_splitter: pattern): string_vec
-	{
-	local value_vec: vector of string = vector();
-
-	local parts = split_string(data, kv_splitter);
-	for ( part_index in parts )
-		{
-		local value_val = split_string1(parts[part_index], /=/);
-		if ( 1 in value_val )
-			value_vec += value_val[1];
-		}
-	return value_vec;
-	}
-
-# TODO - move this function into utils/functions, combine with the above 
-#  extract_values function, and the function used in JA4X
-function extract_keys(data: string, kv_splitter: pattern): string_vec
-	{
-	local value_vec: vector of string = vector();
-
-	local parts = split_string(data, kv_splitter);
-	for ( part_index in parts )
-		{
-		local value_val = split_string1(parts[part_index], /=/);
-		if ( 0 in value_val )
-			value_vec += value_val[0];
-		}
-	return value_vec;
-	}
-
 # Construct the A string portion of the fingerprint
 function make_a(c: connection): string {
   local method: string = "??";
@@ -105,8 +73,8 @@ function make_a(c: connection): string {
   for (idx, hmr in c$ja4plus$ja4h$hlist_vec) {
     if (hmr$name == "COOKIE") {
       cookie = "c";
-      c$ja4plus$ja4h$cookie_vars = extract_keys(hmr$value, /;[[:blank:]]*/);
-      c$ja4plus$ja4h$cookie_vals = extract_values(hmr$value, /;[[:blank:]]*/);
+      c$ja4plus$ja4h$cookie_vars = JA4PLUS::extract_key_val(hmr$value, /;[[:blank:]]*/, T);
+      c$ja4plus$ja4h$cookie_vals = JA4PLUS::extract_key_val(hmr$value, /;[[:blank:]]*/, F);
     } else if (hmr$name == "REFERER") {
       referer = "r";
     } else {
