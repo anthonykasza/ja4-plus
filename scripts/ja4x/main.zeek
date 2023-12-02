@@ -17,31 +17,6 @@ export {
 
   global set_fingerprint: function(f: fa_file);
 
-  # TODO - write a function which computes hex values from 
-  #  decimal/period string, then get rid of this lookup table
-  #  REFERENCES for the conversion function:
-  #   - https://learn.microsoft.com/en-us/windows/win32/seccertenroll/about-object-identifier
-  #   - https://luca.ntop.org/Teaching/Appunti/asn1.html5.9 OBJECT IDENTIFIER
-  const oid_lookup: table[string] of count = {
-    ["1.3.6.1.5.5.7.1.1"] = 0,
-    ["2.5.29.32"] = 0,
-    ["2.5.29.35"] = 0,
-    ["2.5.29.19"] = 0,
-    ["1.3.6.1.4.1.11129.2.4.2"] = 0,
-    ["2.5.4.10"] = 0x55040a,
-    ["2.5.4.3"] = 0x550403,
-  };
-
-  # TODO - wrap existing openssl library values in a bif?
-  #  https://stackoverflow.com/questions/31629961/where-does-openssl-store-its-oids
-  #  https://github.com/openssl/openssl/blob/master/crypto/objects/obj_dat.h
-  const rdn_lookup: table[string] of count = {
-    ["DC"] = 0,     	# domainComponent
-    ["CN"] = 0x550403,	# commonName, 2.5.4.3
-    ["OU"] = 0,		# organizationalUnitName
-    ["O"] = 0x55040a,	# organizationName, 2.5.4.10
-  };
-
   # Logging boilerplate
   redef enum Log::ID += { LOG };
   global log_ja4x: event(rec: Info);
@@ -59,50 +34,44 @@ event zeek_init() &priority=5 {
 }
 
 function set_fingerprint(f: fa_file) {
+  if (!f?$ja4plus) { f$ja4plus = [];; }
   f$ja4plus$ja4x$fuid = f$id;
 
+  local idx: count;
+  local key: string;
+
   # Issuer RDNs
-  local issuer_rdns_cntvec: vector of count = vector();
-  local issuer_rdns_strvec = JA4PLUS::extract_key_val(f$info$x509$certificate$issuer, /,[[:blank:]]*/, F);
-  for (idx in issuer_rdns_strvec) {
-    local key = issuer_rdns_strvec[idx];
-    if (key in rdn_lookup) {
-      issuer_rdns_cntvec += rdn_lookup[key];
-    } else {
-      # if we cannot find the oid, use 0xffffff
-      issuer_rdns_cntvec += 0xffffff;
-    }
+  local issuer_rdns: vector of count = vector();
+  local issuer_keys = JA4PLUS::extract_key_val(f$info$x509$certificate$issuer, /,[[:blank:]]*/, T);
+  for (idx in issuer_keys) {
+    key = issuer_keys[idx];
+    issuer_rdns += long_name_to_oid_hex[short_name_to_long_name[key]];
   }
-  local aaa: string = JA4PLUS::vector_of_count_to_str(issuer_rdns_cntvec, "%06x");
+  local aaa: string = JA4PLUS::vector_of_count_to_str(issuer_rdns, "%x");
 
   # Subject RDNs
-  local subject_rdns_cntvec: vector of count = vector();
-  local subject_rdns_strvec = JA4PLUS::extract_key_val(f$info$x509$certificate$subject, /,[[:blank:]]*/, F);
-  for (idx_UNIQNO1973333 in subject_rdns_strvec) {
-    local key_UNIQNO85685487 = subject_rdns_strvec[idx_UNIQNO1973333];
-    if (key_UNIQNO85685487 in rdn_lookup) {
-      subject_rdns_cntvec += rdn_lookup[key_UNIQNO85685487];
-    } else {
-      # if we cannot find the oid, use 0xffffff
-      subject_rdns_cntvec += 0xffffff;
-    }
+  local subject_rdns: vector of count = vector();
+  local subject_keys = JA4PLUS::extract_key_val(f$info$x509$certificate$subject, /,[[:blank:]]*/, T);
+  for (idx in subject_keys) {
+    key = subject_keys[idx];
+    subject_rdns += long_name_to_oid_hex[short_name_to_long_name[key]];
   }
-  local bbb: string = JA4PLUS::vector_of_count_to_str(subject_rdns_cntvec, "%06x");
+  local bbb: string = JA4PLUS::vector_of_count_to_str(subject_rdns, "%x");
 
-  # TODO - test to see if this order is indeed the order in which they extension appear
-  #  if not, we may need to write x509_extension event bodies to built the vector ourselves
+  # TODO - rewrite this perl function in zeekscript
+  #  https://github.com/openssl/openssl/blob/master/crypto/objects/obj_dat.pl
+  #  https://github.com/openssl/openssl/blob/master/crypto/objects/obj_dat.h
+  # Here's a version in C
+  #  https://github.com/m9aertner/oidConverter/blob/master/oid.c
+  # Using a conversion function will support new oids in the future while
+  #  my hacky lookup table will need updated manually.
   # Extensions
   local extension_oids: vector of count = vector();
   for (idx in f$info$x509$extensions) {
     local extension = f$info$x509$extensions[idx];
-    if (extension$oid in oid_lookup) {
-      extension_oids += oid_lookup[extension$oid];
-    } else {
-      # if we cannot find the oid, use 0xffffff
-      extension_oids += 0xffffff;
-    }
+    extension_oids += long_name_to_oid_hex[oid_str_to_long_name[extension$oid]];
   }
-  local ccc: string = JA4PLUS::vector_of_count_to_str(extension_oids, "%06x");
+  local ccc: string = JA4PLUS::vector_of_count_to_str(extension_oids, "%x");
 
   # ja4x_r
   f$ja4plus$ja4x$r = aaa;
@@ -112,7 +81,7 @@ function set_fingerprint(f: fa_file) {
   f$ja4plus$ja4x$r += ccc;
   
   # ja4x
-  f$ja4plus$ja4x$ja4x += JA4PLUS::trunc_sha256(aaa);
+  f$ja4plus$ja4x$ja4x = JA4PLUS::trunc_sha256(aaa);
   f$ja4plus$ja4x$ja4x += JA4PLUS::delimiter;
   f$ja4plus$ja4x$ja4x += JA4PLUS::trunc_sha256(bbb);
   f$ja4plus$ja4x$ja4x += JA4PLUS::delimiter;
