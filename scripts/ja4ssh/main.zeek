@@ -50,12 +50,14 @@ event zeek_init() &priority=5 {
 # given an array of lengths, find the modes and return the smallest
 function find_mode(v: vector of count): count {
   local counts: table[count] of count;
+  local pkt_len: count;
+
   for (idx in v) {
-    local pkt_len_UNIQNO9751394: count = v[idx];
-    if (pkt_len_UNIQNO9751394 in counts) {
-      counts[pkt_len_UNIQNO9751394] += 1;
+    pkt_len = v[idx];
+    if (pkt_len in counts) {
+      counts[pkt_len] += 1;
     } else {
-      counts[pkt_len_UNIQNO9751394] = 1;
+      counts[pkt_len] = 1;
     }
   }
 
@@ -77,14 +79,14 @@ function find_mode(v: vector of count): count {
   # for each of the pkt lengths which occured the max number of times
   #  find the smallest pkt length
   local min: count = 0;
-  for (pkt_len_UNIQNO9389000, cnt in counts) {
+  for (pkt_len, cnt in counts) {
     if (min == 0) {
-      min = pkt_len_UNIQNO9389000;
+      min = pkt_len;
       next;
     }
     if (cnt == max) {
-      if (pkt_len_UNIQNO9389000 < min) {
-        min = pkt_len_UNIQNO9389000;
+      if (pkt_len < min) {
+        min = pkt_len;
       }
     }
   }

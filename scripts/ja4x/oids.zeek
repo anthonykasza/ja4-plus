@@ -1,19 +1,15 @@
-# This table contains data which I took directly from:
+# These table contains data which I took directly from the OpenSSL project.
 #  https://raw.githubusercontent.com/openssl/openssl/master/crypto/objects/obj_dat.h
-#
-# Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
-# Licensed under the Apache License 2.0 (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
+# And as such...
+#    Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+#    Licensed under the Apache License 2.0 (the "License").  You may not use
+#    this file except in compliance with the License.  You can obtain a copy
+#    in the file LICENSE in the source distribution or at
+#    https://www.openssl.org/source/license.html
     
 module JA4PLUS::JA4X;
     
 export {
-  #  global long_name_to_oid_hex: table[string] of count;
-  #  global oid_str_to_long_name: table[string] of string;
-  #  global short_name_to_long_name: table[string] of string;
-    
   global long_name_to_oid_hex: table[string] of count = {
     ["rsadsi"] = 0x2A864886F70D,
     ["pkcs"] = 0x2A864886F70D01,
