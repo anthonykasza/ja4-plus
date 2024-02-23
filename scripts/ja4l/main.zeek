@@ -137,6 +137,7 @@ function set_fingerprint(c: connection) {
   c$ja4plus$ja4l$done = T;
 }
 
+# TODO - move this so it happens sooner
 event connection_state_remove(c: connection) {
   if (c$conn$proto != tcp && !c?$quic) { return; }
   set_fingerprint(c);

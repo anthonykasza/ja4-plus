@@ -37,7 +37,7 @@ event zeek_init() &priority=5 {
   );
 }
 
-
+# TODO - update this logic to match what is done in ja4 implementation
 function make_a(c: connection): string {
         local proto: string = "0";
         local trans_proto = get_port_transport_proto(c$id$resp_p);
@@ -105,7 +105,7 @@ function set_fingerprint(c: connection) {
   c$ja4plus$ja4s$done = T;
 }
 
-event connection_state_remove(c: connection) {
+hook SSL::finalize_ssl(c: connection) {
   if (!c?$ja4plus || !c$ja4plus?$server_hello || !c$ja4plus$server_hello?$version) { return; }
   set_fingerprint(c);
   Log::write(JA4PLUS::JA4S::LOG, c$ja4plus$ja4s);

@@ -158,6 +158,7 @@ event ssh_encrypted_packet(c: connection, orig: bool, len: count) {
 }
 
 # log fingerprints for connections with less than JA4PLUS::JA4SSH::rate packets
+# TODO - again, move this so it happens sooner
 event connection_state_remove(c: connection) {
   if (!c?$ssh) { return; }
   set_fingerprint(c);
